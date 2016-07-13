@@ -2,11 +2,14 @@ import subprocess
 import time
 import os
 import shutil
+import numpy as np
 
+KEYS = ["Left", "Right", "Up", "Down", "Z", "X"]
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
 
 def launchGame():
-    subprocess.Popen(["vba", "-4", "POKEMONRED98.GB"])
+    #subprocess.Popen(["vba", "-4", "POKEMONRED98.GB"])
+    subprocess.Popen(["vba", "POKEMONRED98.GB"])
 
 #Get the window ID of the process
 def getWindowID():    
@@ -54,21 +57,42 @@ def loadGame(filename, ID):
 #Record window with ID to a file
 def startRecording(filename, ID):
     (pos, geom) = getWindowGeometry(ID)
-    command = ["avconv", "-f", "x11grab", "-r", "20", "-s", geom, "-i", ":0.0+%s"%str(pos)[2:-1], "-qscale", "0", filename]
-    print(command)
+    command = ["avconv", "-f", "x11grab", "-r", "30", "-s", geom, "-i", ":0.0+%s"%str(pos)[2:-1], "-qscale", "0", filename]
     proc = subprocess.Popen(command)
     return proc
 
 def stopRecording(proc):
     proc.terminate()
 
+def hitKey(ID, key, delay = 500):
+    #A delay (ms) is needed to make sure key taps register in the game
+    command = ["xdotool", "key", "--window", "%i"%ID, "--delay", "%i"%delay, key]
+    subprocess.call(command)
+
+def holdKey(ID, key):
+    #A delay (ms) is needed to make sure key taps register in the game
+    command = ["xdotool", "keydown", "--window", "%i"%ID, key]
+    print(command)
+    subprocess.call(command)
+
+def releaseKey(ID, key):
+    #A delay (ms) is needed to make sure key taps register in the game
+    command = ["xdotool", "keyup", "--window", "%i"%ID, key]
+    print(command)
+    subprocess.call(command)
+
 if __name__ == '__main__':
     launchGame()
     time.sleep(1)
     ID = getWindowID()
     recProc = startRecording("test.avi", ID)
-    time.sleep(2)
+    time.sleep(1)
     loadGame("BEGINNING.sgm", ID)
-    time.sleep(2)
+    holdKey(ID, 'space')
+    #time.sleep(3)
+    for i in range(1000):
+        key = KEYS[np.random.randint(len(KEYS))]
+        hitKey(ID, key, 1000/30)
+    releaseKey(ID, 'space')
     stopRecording(recProc)
     #saveGame("startScreen.sgm", ID)
