@@ -6,6 +6,7 @@ import numpy as np
 
 KEYS = ["Left", "Right", "Up", "Down", "Z", "X"]
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
+PYTHON3 = False
 
 def launchGame():
     #subprocess.Popen(["vba", "-4", "POKEMONRED98.GB"])
@@ -55,9 +56,11 @@ def loadGame(filename, ID):
     subprocess.call(["xdotool", "key", "--window", "%i"%ID, "F1"])
 
 #Record window with ID to a file
-def startRecording(filename, ID):
+def startRecording(filename, ID, display = ":1.0"):
     (pos, geom) = getWindowGeometry(ID)
-    command = ["avconv", "-f", "x11grab", "-r", "30", "-s", geom, "-i", ":0.0+%s"%str(pos)[2:-1], "-qscale", "0", filename]
+    if PYTHON3:
+        pos = str(pos)[2:-1]
+    command = ["avconv", "-f", "x11grab", "-r", "30", "-s", geom, "-i", "%s+%s"%(display, pos), "-qscale", "0", filename]
     proc = subprocess.Popen(command)
     return proc
 
@@ -81,11 +84,29 @@ def releaseKey(ID, key):
     print(command)
     subprocess.call(command)
 
-if __name__ == '__main__':
+if __name__ == '__main__2':
+    display = ":1.0"
     launchGame()
     time.sleep(1)
     ID = getWindowID()
-    recProc = startRecording("test.avi", ID)
+    loadGame("BEGINNING.sgm", ID)
+
+if __name__ == '__main__2':
+    display = ":1.0"
+    launchGame()
+    time.sleep(1)
+    ID = getWindowID()
+    for i in range(3):
+        hitKey(ID, 'z')
+        time.sleep(0.1)
+    saveGame("test.sgm", ID)
+
+if __name__ == '__main__':
+    display = ":1.0"
+    launchGame()
+    time.sleep(1)
+    ID = getWindowID()
+    recProc = startRecording("test.avi", ID, display)
     time.sleep(1)
     loadGame("BEGINNING.sgm", ID)
     holdKey(ID, 'space')
