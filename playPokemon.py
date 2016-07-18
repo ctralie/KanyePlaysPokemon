@@ -6,7 +6,8 @@ import numpy as np
 
 KEYS = ["Left", "Right", "Up", "Down", "Z", "X"]
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
-PYTHON3 = False
+PYTHON3 = True
+DISPLAY = ":0.0"
 
 def launchGame():
     #subprocess.Popen(["vba", "-4", "POKEMONRED98.GB"])
@@ -92,7 +93,6 @@ if __name__ == '__main__2':
     loadGame("BEGINNING.sgm", ID)
 
 if __name__ == '__main__2':
-    display = ":1.0"
     launchGame()
     time.sleep(1)
     ID = getWindowID()
@@ -102,11 +102,10 @@ if __name__ == '__main__2':
     saveGame("test.sgm", ID)
 
 if __name__ == '__main__':
-    display = ":1.0"
     launchGame()
     time.sleep(1)
     ID = getWindowID()
-    recProc = startRecording("test.avi", ID, display)
+    recProc = startRecording("test.avi", ID, DISPLAY)
     time.sleep(1)
     loadGame("BEGINNING.sgm", ID)
     holdKey(ID, 'space')
