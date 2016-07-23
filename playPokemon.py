@@ -3,11 +3,14 @@ import time
 import os
 import shutil
 import numpy as np
+import scipy.misc
+import matplotlib.pyplot as plt
 
 KEYS = ["Left", "Right", "Up", "Down", "Z", "X"]
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
-PYTHON3 = True
-DISPLAY = ":0.0"
+PYTHON3 = False
+DISPLAY = ":1.0"
+RECORD_TIME = 1
 
 def launchGame():
     #subprocess.Popen(["vba", "-4", "POKEMONRED98.GB"])
@@ -85,23 +88,51 @@ def releaseKey(ID, key):
     print(command)
     subprocess.call(command)
 
-if __name__ == '__main__2':
-    display = ":1.0"
-    launchGame()
+def hitKeyAndRecord(ID, key, filename, sgin, sgout):
+    if os.path.exists(filename):
+        os.remove(filename)
+    
+    #Step 1: Load the saved game state and record the action
     time.sleep(1)
-    ID = getWindowID()
-    loadGame("BEGINNING.sgm", ID)
+    loadGame(sgin, ID)
+    time.sleep(1)
+    recProc = startRecording(filename, ID, DISPLAY)
+    time.sleep(0.2)
+    hitKey(ID, key, 300)
+    time.sleep(RECORD_TIME)
+    stopRecording(recProc)
+    saveGame(sgout, ID)
+    
+    #Step 2: Output video frames to temporary directory
+    subprocess.call(["avconv", "-i", filename, "-r", "30", "-f", "image2", "Temp/%d.png"])
+    
+    #Step 3: Start with the last frame, and go back until frame changes
+    NFiles = len([f for f in os.listdir("Temp") if f[-3:] == 'png'])
+    i = NFiles
+    lastFrame = scipy.misc.imread("Temp/%i.png"%i)
+    i = i - 1
+    while i > 0:
+        thisFrame = scipy.misc.imread("Temp/%i.png"%i)
+        diffSum = np.sum(np.abs(thisFrame - lastFrame))
+        if diffSum >= 0:
+            plt.clf()
+            plt.subplot(131)
+            plt.imshow(thisFrame); plt.title("This Frame %i"%i)
+            plt.subplot(132)
+            plt.imshow(lastFrame); plt.title("Last Frame: %i"%NFiles)
+            plt.subplot(133)
+            plt.imshow(thisFrame-lastFrame); plt.title("Difference: %g"%diffSum)
+            plt.colorbar()
+            plt.savefig("Temp/diff%i.png"%i)
+        lastFrame = thisFrame
+        i = i - 1
+    print("Removing %i frames"%(NFiles-i))
+    i = i + 1
+    while i <= NFiles:
+        os.remove("Temp/%i.png"%i)
+        i = i + 1
 
 if __name__ == '__main__2':
-    launchGame()
-    time.sleep(1)
-    ID = getWindowID()
-    for i in range(3):
-        hitKey(ID, 'z')
-        time.sleep(0.1)
-    saveGame("test.sgm", ID)
-
-if __name__ == '__main__':
     launchGame()
     time.sleep(1)
     ID = getWindowID()
@@ -116,3 +147,16 @@ if __name__ == '__main__':
     releaseKey(ID, 'space')
     stopRecording(recProc)
     #saveGame("startScreen.sgm", ID)
+
+if __name__ == '__main__3':
+    launchGame()
+    time.sleep(1)
+    ID = getWindowID()
+    hitKeyAndRecord(ID, "Right", "RightTest.avi", "BEGINNING.sgm", "BEGINNING_RIGHT.sgm")
+
+if __name__ == '__main__':
+    launchGame()
+    time.sleep(1)
+    ID = getWindowID()
+    loadGame("BEGINNING.sgm", ID)
+

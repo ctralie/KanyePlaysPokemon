@@ -6,6 +6,7 @@ except:
 
 from twython import Twython
 import os
+from nltk import word_tokenize
 
 TRUMP_USERID = 25073877
 
@@ -44,6 +45,9 @@ class TweetObj(object):
         self.sgm = False
         self.date = ""
         self.text = ""
+    
+    def __str__(self):
+        return "%i, %s, OggFile: %s, SavedGame: %s\n%s"%(self.ID, self.date, self.oggfile, self.sgm, self.text)
 
 def loadAllSavedTweets():
     files = os.listdir('Data')
@@ -90,4 +94,6 @@ if __name__ == '__main__':
 #    for t in tweets:
 #        saveTweet(t)
     TweetsDict = loadAllSavedTweets()
-    
+    for T in sorted(TweetsDict):
+        #print(word_tokenize(TweetsDict[T].text.lower()))
+        print (TweetsDict[T].text.lower()).split()
