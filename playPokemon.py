@@ -6,11 +6,25 @@ import numpy as np
 import scipy.misc
 import matplotlib.pyplot as plt
 
-KEYS = ["Left", "Right", "Up", "Down", "Z", "X"]
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
 PYTHON3 = False
-DISPLAY = ":1.0"
+DISPLAY = ":0.0"
 RECORD_TIME = 1
+
+class Key(object):
+    def __init__(self, key, prob, image):
+        self.key = key
+        self.prob = prob
+        self.image = image
+
+KEYS = [Key("Left", 0.166,  "PressingLeft.png")]
+KEYS.append(Key("Right", 0.166, "PressingRight.png"))
+KEYS.append(Key("Up", 0.166, "PressingUp.png"))
+KEYS.append(Key("Down", 0.166, "PressingDown.png"))
+KEYS.append(Key("Z", 0.166, "PressingA.png"))
+KEYS.append(Key("X", 0.166, "PressingB.png"))
+KEYS.append(Key("Return", 0.002, "PressingStart.png"))
+KEYS.append(Key("BackSpace", 0.002, "PressingSelect.png"))
 
 def launchGame():
     #subprocess.Popen(["vba", "-4", "POKEMONRED98.GB"])
@@ -88,7 +102,25 @@ def releaseKey(ID, key):
     print(command)
     subprocess.call(command)
 
-def hitKeyAndRecord(ID, key, filename, sgin, sgout):
+def makeFrame(filename, keyObj, text, wordRange):
+    fin = open("template.tex")
+    l = fin.readlines()
+    s = "".join(l)
+    fin.close()
+    s = s.replace("SCREENSHOTGOESHERE", filename)
+    s = s.replace("CONTROLLERGOESHERE", "ControllerImages/%s"%keyObj.image)
+    before = text[0:wordRange[0]]
+    during = text[wordRange[0]:wordRange[1]]
+    after = text[wordRange[1]:]
+    s = s.replace("TEXTGOESHERE", "%s\\textcolor{red}{%s}%s"%(before, during, after))
+    fout = open("temp.tex", "w")
+    fout.write(s)
+    fout.close()
+    subprocess.call(["pdflatex", "temp.tex"])
+    #convert -density 150 input.pdf -quality 90 output.png
+    subprocess.call(["convert", "-density", "150", "temp.pdf", "-quality", "90", filename])
+
+def hitKeyAndRecord(ID, keyObj, filename, sgin, sgout):
     if os.path.exists(filename):
         os.remove(filename)
     
@@ -98,7 +130,7 @@ def hitKeyAndRecord(ID, key, filename, sgin, sgout):
     time.sleep(1)
     recProc = startRecording(filename, ID, DISPLAY)
     time.sleep(0.2)
-    hitKey(ID, key, 300)
+    hitKey(ID, keyObj.key, 300)
     time.sleep(RECORD_TIME)
     stopRecording(recProc)
     saveGame(sgout, ID)
@@ -131,6 +163,8 @@ def hitKeyAndRecord(ID, key, filename, sgin, sgout):
     while i <= NFiles:
         os.remove("Temp/%i.png"%i)
         i = i + 1
+    for i in range(1, NFiles+1):
+        makeFrame("Temp/%i.png"%i, keyObj, "This is test text", [8, 12])
 
 if __name__ == '__main__2':
     launchGame()
@@ -148,13 +182,13 @@ if __name__ == '__main__2':
     stopRecording(recProc)
     #saveGame("startScreen.sgm", ID)
 
-if __name__ == '__main__3':
+if __name__ == '__main__':
     launchGame()
     time.sleep(1)
     ID = getWindowID()
-    hitKeyAndRecord(ID, "Right", "RightTest.avi", "BEGINNING.sgm", "BEGINNING_RIGHT.sgm")
+    hitKeyAndRecord(ID, KEYS[0], "RightTest.avi", "BEGINNING.sgm", "BEGINNING_RIGHT.sgm")
 
-if __name__ == '__main__':
+if __name__ == '__main__2':
     launchGame()
     time.sleep(1)
     ID = getWindowID()
