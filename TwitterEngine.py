@@ -66,15 +66,13 @@ def getNewTweets(api, latestid):
 class TweetObj(object):
     def __init__(self, ID):
         self.ID = ID
-        self.oggfile = False
-        self.sgm = False
         self.date = ""
         self.text = ""
     
     def __str__(self):
-        return "%i, %s, OggFile: %s, SavedGame: %s\n%s"%(self.ID, self.date, self.oggfile, self.sgm, self.text)
+        return "%i, %s\n%s"%(self.ID, self.date, self.text)
 
-def loadAllSavedTweets():
+def loadAllSavedTweets(verbose = False):
     files = os.listdir('Data')
     tweets = []
     oggs = []
@@ -90,17 +88,6 @@ def loadAllSavedTweets():
                 TweetsDict[ID].date = lines[0]
                 for l in lines[1::]:
                     TweetsDict[ID].text += l
-        elif ext == ".ogg":
-            ID = int(ID)
-            if not ID in TweetsDict:
-                TweetsDict[ID] = TweetObj(ID)
-            TweetsDict[ID].oggfile = True
-        
-        elif ext == ".sgm":
-            ID = int(ID)
-            if not ID in TweetsDict:
-                TweetsDict[ID] = TweetObj(ID)
-            TweetsDict[ID].sgm = True
     #Remove retweets and tweets with only links
     retweets = []
     for ID in TweetsDict:
@@ -113,7 +100,8 @@ def loadAllSavedTweets():
     NRetweets = len(retweets)
     for ID in retweets:
         TweetsDict.pop(ID)
-    print("%i retweets removed from initial list, %i tweets total loaded"%(NRetweets, len(TweetsDict)))
+    if verbose:
+        print("%i retweets removed from initial list, %i tweets total loaded"%(NRetweets, len(TweetsDict)))
     return TweetsDict
 
 def saveTweet(tweet):

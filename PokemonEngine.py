@@ -10,7 +10,8 @@ import scipy.misc
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
 PYTHON3 = True
 DISPLAY = ":0.0"
-RECORD_TIME = 1
+RECORD_TIME = 0.8
+FRAMESPERSEC = 15
 
 class Key(object):
     def __init__(self, key, actualkey, prob, image):
@@ -41,7 +42,8 @@ def getRandomKey():
 
 def launchGame():
     #subprocess.Popen(["vba", "-4", "POKEMONRED98.GB"])
-    subprocess.Popen(["vba", "POKEMONRED98.GB"])
+    FNULL = open(os.devnull, 'w')
+    subprocess.Popen(["vba", "POKEMONRED98.GB"], stdout = FNULL, stderr = FNULL)
 
 #Get the window ID of the process
 def getWindowID():    
@@ -78,7 +80,11 @@ def saveGame(filename, ID):
     subprocess.call(["xdotool", "keydown", "--window", "%i"%ID, "shift"])
     subprocess.call(["xdotool", "key", "--window", "%i"%ID, "F1"])
     subprocess.call(["xdotool", "keyup", "--window", "%i"%ID, "shift"])
-    shutil.copyfile(SAVEGAMELOC, filename)
+    if os.stat(SAVEGAMELOC).st_size == 0:
+        print("ERROR saving game.  Retrying...")
+        saveGame(filename, ID)
+    else:
+        shutil.copyfile(SAVEGAMELOC, filename)
 
 def loadGame(filename, ID):
     if os.path.exists(SAVEGAMELOC):
@@ -92,13 +98,14 @@ def startRecording(filename, ID, display = ":1.0"):
     if PYTHON3:
         pos = str(pos)[2:-1]
     command = ["avconv", "-f", "x11grab", "-r", "30", "-s", geom, "-i", "%s+%s"%(display, pos), "-qscale", "0", filename]
-    proc = subprocess.Popen(command)
+    FNULL = open(os.devnull, 'w')
+    proc = subprocess.Popen(command, stdout = FNULL, stderr = FNULL)
     return proc
 
 def stopRecording(proc):
     proc.terminate()
 
-def hitKey(ID, key, delay = 500):
+def hitKey(ID, key, delay = 400):
     #A delay (ms) is needed to make sure key taps register in the game
     command = ["xdotool", "key", "--window", "%i"%ID, "--delay", "%i"%delay, key]
     subprocess.call(command)
@@ -146,15 +153,17 @@ def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
     fout = open("temp.html", "w")
     fout.write(s)
     fout.close()
-    subprocess.call(["wkhtmltopdf", "temp.html", "temp.pdf"])
-    subprocess.call(["convert", "-density", "150", "temp.pdf", "-quality", "90", "temp.png"])
-    subprocess.call(["convert", "temp.png", "-trim", "+repage", "temp.png"])
+    
+    FNULL = open(os.devnull, 'w')
+    subprocess.call(["wkhtmltopdf", "temp.html", "temp.pdf"], stdout = FNULL, stderr = FNULL)
+    subprocess.call(["convert", "-density", "150", "temp.pdf", "-quality", "90", "temp.png"], stdout = FNULL, stderr = FNULL)
+    subprocess.call(["convert", "temp.png", "-trim", "+repage", "temp.png"], stdout = FNULL, stderr = FNULL)
     #There's a small border around all sides that causes autocrop to fail the first
     #time
     text = scipy.misc.imread("temp.png")
     text = text[2:-2, 2:-2, :]
     scipy.misc.imsave("temp.png", text)
-    subprocess.call(["convert", "temp.png", "-trim", "+repage", "temp.png"])
+    subprocess.call(["convert", "temp.png", "-trim", "+repage", "temp.png"], stdout = FNULL, stderr = FNULL)
     
     #Load in text
     textImg = scipy.misc.imread("temp.png")
@@ -174,32 +183,15 @@ def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
 
 #Hits a key, records the video, and superimposes the gameboy
 #controls and highlighted text in each frame
-def hitKeyAndRecord(ID, keyObj, text, wordRange):
-    filename = "temp.avi"
+def hitKeyAndRecord(ID, keyObj, filename):
     if os.path.exists(filename):
         os.remove(filename)
     
     #Step 1: Load the saved game state and record the action
     recProc = startRecording(filename, ID, DISPLAY)
-    time.sleep(0.2)
-    hitKey(ID, keyObj.key, 300)
+    hitKey(ID, keyObj.key, 400)
     time.sleep(RECORD_TIME)
     stopRecording(recProc)
-    
-    #Step 2: Output video frames to temporary directory
-    subprocess.call(["avconv", "-i", filename, "-r", "30", "-f", "image2", "Temp/%d.png"])
-    
-    #Step 3: Superimpose the text and the gameboy control on all images
-    (I, r) = makeFrameTemplate("Temp/1.png", keyObj, text, wordRange)
-    H = r[1] - r[0]
-    W = r[3] - r[2]
-    NFiles = len([f for f in os.listdir("Temp") if f[-3:] == 'png'])
-    for i in range(1, NFiles+1):
-        frame = scipy.misc.imread("Temp/%i.png"%i)
-        frame = scipy.misc.imresize(frame, (H, W))
-        I[r[0]:r[1], r[2]:r[3], :] = frame[:, :, 0:3]
-        scipy.misc.imsave("Temp/%i.png"%i, I)
-    return NFiles
 
 if __name__ == '__main__':
     launchGame()
