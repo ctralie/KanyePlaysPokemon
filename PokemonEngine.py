@@ -5,6 +5,7 @@ import shutil
 import numpy as np
 import scipy.misc
 import matplotlib.pyplot as plt
+import scipy.misc
 
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
 PYTHON3 = True
@@ -114,42 +115,62 @@ def releaseKey(ID, key):
     print(command)
     subprocess.call(command)
 
-def makeFrameLaTeX(filename, keyObj, text, wordRange):
-    fin = open("template.tex")
+#Return (image, [sx, ex, sy, ey] range for other frames)
+def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
+    #Load in and resize frame    
+    frame = scipy.misc.imread(filename)
+    W = 640
+    frac = float(W)/frame.shape[1]
+    frame = scipy.misc.imresize(frame, frac)
+    
+    #Load in and resize controls
+    controls = scipy.misc.imread("ControllerImages/%s"%keyObj.image)
+    H = frame.shape[0]
+    frac = float(H)/controls.shape[0]
+    controls = scipy.misc.imresize(controls, frac)
+    
+    #Figure out the width
+    W = int(np.ceil(frame.shape[1] + controls.shape[1]))
+    
+    #Render text
+    fin = open("textTemplate.html")
     l = fin.readlines()
     s = "".join(l)
     fin.close()
-    s = s.replace("SCREENSHOTGOESHERE", filename)
-    s = s.replace("CONTROLLERGOESHERE", "ControllerImages/%s"%keyObj.image)
-    before = text[0:wordRange[0]]
-    during = text[wordRange[0]:wordRange[1]]
-    after = text[wordRange[1]:]
-    s = s.replace("TEXTGOESHERE", "%s\\textcolor{red}{%s}%s"%(before, during, after))
-    fout = open("temp.tex", "w")
-    fout.write(s)
-    fout.close()
-    subprocess.call(["pdflatex", "temp.tex"])
-    #convert -density 150 input.pdf -quality 90 output.png
-    subprocess.call(["convert", "-density", "150", "temp.pdf", "-quality", "90", filename])
-
-def makeFrameHTML(filename, keyObj, text, wordRange):
-    fin = open("template.html")
-    l = fin.readlines()
-    s = "".join(l)
-    fin.close()
-    s = s.replace("SCREENSHOTGOESHERE", filename)
-    s = s.replace("CONTROLLERGOESHERE", "ControllerImages/%s"%keyObj.image)
-    before = text[0:wordRange[0]]
-    during = text[wordRange[0]:wordRange[1]]
-    after = text[wordRange[1]:]
+    s = s.replace("WIDTHGOESHERE", "%i"%W)
+    textHTML = text
+    before = textHTML[0:wordRange[0]]
+    during = textHTML[wordRange[0]:wordRange[1]]
+    after = textHTML[wordRange[1]:]
     s = s.replace("TEXTGOESHERE", "%s<font color = \"red\">%s</font>%s"%(before, during, after))
     fout = open("temp.html", "w")
     fout.write(s)
     fout.close()
     subprocess.call(["wkhtmltopdf", "temp.html", "temp.pdf"])
-    #convert -density 150 input.pdf -quality 90 output.png
-    subprocess.call(["convert", "-density", "150", "temp.pdf", "-quality", "90", filename])
-    subprocess.call(["convert", filename, "-trim", "+repage", filename])
+    subprocess.call(["convert", "-density", "150", "temp.pdf", "-quality", "90", "temp.png"])
+    subprocess.call(["convert", "temp.png", "-trim", "+repage", "temp.png"])
+    #There's a small border around all sides that causes autocrop to fail the first
+    #time
+    text = scipy.misc.imread("temp.png")
+    text = text[2:-2, 2:-2, :]
+    scipy.misc.imsave("temp.png", text)
+    subprocess.call(["convert", "temp.png", "-trim", "+repage", "temp.png"])
+    
+    #Load in text
+    textImg = scipy.misc.imread("temp.png")
+    frac = float(W)/textImg.shape[1]
+    textImg = scipy.misc.imresize(textImg, frac)
+    
+    #Finally, set up image, and report range where gameboy frame resides
+    H = textImg.shape[0] + controls.shape[0]
+    I = np.zeros((H + 2*pad, W + 2*pad, 3))
+    I[pad:pad+frame.shape[0], pad:pad+frame.shape[1], :] = frame[:, :, 0:3]
+    I[pad:pad+controls.shape[0], pad+frame.shape[1]:pad+frame.shape[1]+controls.shape[1], :] = controls[:, :, 0:3]
+    I[pad+frame.shape[0]:pad+frame.shape[0]+textImg.shape[0], pad:pad+textImg.shape[1], :] = textImg[:, :, 0:3]
+    
+    r = [pad, pad+frame.shape[0], pad, pad+frame.shape[1]]
+    return (I, r)
+    
 
 #Hits a key, records the video, and superimposes the gameboy
 #controls and highlighted text in each frame
@@ -168,10 +189,16 @@ def hitKeyAndRecord(ID, keyObj, text, wordRange):
     #Step 2: Output video frames to temporary directory
     subprocess.call(["avconv", "-i", filename, "-r", "30", "-f", "image2", "Temp/%d.png"])
     
-    #Step 3: Superimpose the text and the gameboy control
+    #Step 3: Superimpose the text and the gameboy control on all images
+    (I, r) = makeFrameTemplate("Temp/1.png", keyObj, text, wordRange)
+    H = r[1] - r[0]
+    W = r[3] - r[2]
     NFiles = len([f for f in os.listdir("Temp") if f[-3:] == 'png'])
     for i in range(1, NFiles+1):
-        makeFrameHTML("Temp/%i.png"%i, keyObj, text, wordRange)
+        frame = scipy.misc.imread("Temp/%i.png"%i)
+        frame = scipy.misc.imresize(frame, (H, W))
+        I[r[0]:r[1], r[2]:r[3], :] = frame[:, :, 0:3]
+        scipy.misc.imsave("Temp/%i.png"%i, I)
     return NFiles
 
 if __name__ == '__main__':

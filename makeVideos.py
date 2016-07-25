@@ -72,5 +72,6 @@ if __name__ == '__main__':
                     continue
                 savegame = "Data/%i.sgm"%IDs[i-1]
             makeTweetVideo(stemsDict, savegame, windowID, IDs[i], TweetsDict[IDs[i]])
-    
-    saveStemsDictionary(stemsDict)
+            TweetsDict[IDs[i]].oggfile = True
+            TweetsDict[IDs[i]].sgm = True
+        saveStemsDictionary(stemsDict)
