@@ -77,11 +77,16 @@ def gainFocus(ID):
     subprocess.call(["xdotool", "mousemove", "--window", "%i"%ID, "200", "200", "click", "1"])
 
 def saveGame(filename, ID):
+    if os.path.exists(SAVEGAMELOC):
+        os.remove(SAVEGAMELOC)
     subprocess.call(["xdotool", "keydown", "--window", "%i"%ID, "shift"])
     subprocess.call(["xdotool", "key", "--window", "%i"%ID, "F1"])
     subprocess.call(["xdotool", "keyup", "--window", "%i"%ID, "shift"])
-    if os.stat(SAVEGAMELOC).st_size == 0:
-        print("ERROR saving game.  Retrying...")
+    if not os.path.exists(SAVEGAMELOC):
+        print("ERROR TYPE 1 saving game.  Retrying...")
+        saveGame(filename, ID)
+    elif os.stat(SAVEGAMELOC).st_size == 0:
+        print("ERROR TYPE 2 saving game.  Retrying...")
         saveGame(filename, ID)
     else:
         shutil.copyfile(SAVEGAMELOC, filename)

@@ -31,13 +31,14 @@ def makeTweetVideo(stemsDict, sgin, windowID, tweetID, tweet):
     for i in range(len(words)):
         stem = words[i]['stem']
         r = words[i]['range']
-        print(text[r[0]:r[1]])
+        print(text[r[0]:r[1]], end = " ")
         if not stem in stemsDict:
             newwords.append(stem)
             stemsDict[stem] = getRandomKey()
         keyObj = KEYS[stemsDict[stem]]
         hitKeyAndRecord(windowID, keyObj, "temp%i.avi"%i)
     saveGame("Data/%i.sgm"%tweetID, windowID)
+    print("")
     
     #Step 2: Add controls and text to all frames
     FrameCount = 0
@@ -94,7 +95,7 @@ if __name__ == '__main__':
     for i in range(len(IDs)):
         print("i = %i, IDs[%i] = %i"%(i, i, IDs[i]))
         if os.path.exists("Data/%i.ogg"%IDs[i]):
-            print("Skipping %i...", IDs[i])
+            print("Skipping %i..."%IDs[i])
             continue
         else:
             print("Making video for %i..."%IDs[i])
