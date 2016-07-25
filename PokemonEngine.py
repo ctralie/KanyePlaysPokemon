@@ -7,24 +7,36 @@ import scipy.misc
 import matplotlib.pyplot as plt
 
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
-PYTHON3 = False
+PYTHON3 = True
 DISPLAY = ":0.0"
 RECORD_TIME = 1
 
 class Key(object):
-    def __init__(self, key, prob, image):
+    def __init__(self, key, actualkey, prob, image):
         self.key = key
+        self.actualkey = actualkey
         self.prob = prob
         self.image = image
 
-KEYS = [Key("Left", 0.166,  "PressingLeft.png")]
-KEYS.append(Key("Right", 0.166, "PressingRight.png"))
-KEYS.append(Key("Up", 0.166, "PressingUp.png"))
-KEYS.append(Key("Down", 0.166, "PressingDown.png"))
-KEYS.append(Key("Z", 0.166, "PressingA.png"))
-KEYS.append(Key("X", 0.166, "PressingB.png"))
-KEYS.append(Key("Return", 0.002, "PressingStart.png"))
-KEYS.append(Key("BackSpace", 0.002, "PressingSelect.png"))
+KEYS = {}
+KEYS["Left"] = Key("Left", "Left", 0.166,  "PressingLeft.png")
+KEYS["Right"] = Key("Right", "Right", 0.166, "PressingRight.png")
+KEYS["Up"] = Key("Up", "Up", 0.166, "PressingUp.png")
+KEYS["Down"] = Key("Down", "Down", 0.166, "PressingDown.png")
+KEYS["A"] = Key("Z", "A", 0.166, "PressingA.png")
+KEYS["B"] = Key("X", "B", 0.166, "PressingB.png")
+KEYS["Start"] = Key("Return", "Start", 0.002, "PressingStart.png")
+KEYS["Select"] = Key("BackSpace", "Select", 0.002, "PressingSelect.png")
+
+def getRandomKey():
+    num = np.random.rand()
+    keys = [KEYS[k] for k in KEYS]
+    idx = 0
+    cumsum = keys[idx].prob
+    while cumsum < num and idx < len(KEYS) - 1:
+        idx += 1
+        cumsum += keys[idx].prob
+    return keys[idx].actualkey
 
 def launchGame():
     #subprocess.Popen(["vba", "-4", "POKEMONRED98.GB"])
@@ -102,7 +114,7 @@ def releaseKey(ID, key):
     print(command)
     subprocess.call(command)
 
-def makeFrame(filename, keyObj, text, wordRange):
+def makeFrameLaTeX(filename, keyObj, text, wordRange):
     fin = open("template.tex")
     l = fin.readlines()
     s = "".join(l)
@@ -120,53 +132,49 @@ def makeFrame(filename, keyObj, text, wordRange):
     #convert -density 150 input.pdf -quality 90 output.png
     subprocess.call(["convert", "-density", "150", "temp.pdf", "-quality", "90", filename])
 
-def hitKeyAndRecord(ID, keyObj, filename, sgin, sgout):
+def makeFrameHTML(filename, keyObj, text, wordRange):
+    fin = open("template.html")
+    l = fin.readlines()
+    s = "".join(l)
+    fin.close()
+    s = s.replace("SCREENSHOTGOESHERE", filename)
+    s = s.replace("CONTROLLERGOESHERE", "ControllerImages/%s"%keyObj.image)
+    before = text[0:wordRange[0]]
+    during = text[wordRange[0]:wordRange[1]]
+    after = text[wordRange[1]:]
+    s = s.replace("TEXTGOESHERE", "%s<font color = \"red\">%s</font>%s"%(before, during, after))
+    fout = open("temp.html", "w")
+    fout.write(s)
+    fout.close()
+    subprocess.call(["wkhtmltopdf", "temp.html", "temp.pdf"])
+    #convert -density 150 input.pdf -quality 90 output.png
+    subprocess.call(["convert", "-density", "150", "temp.pdf", "-quality", "90", filename])
+    subprocess.call(["convert", filename, "-trim", "+repage", filename])
+
+#Hits a key, records the video, and superimposes the gameboy
+#controls and highlighted text in each frame
+def hitKeyAndRecord(ID, keyObj, text, wordRange):
+    filename = "temp.avi"
     if os.path.exists(filename):
         os.remove(filename)
     
     #Step 1: Load the saved game state and record the action
-    time.sleep(1)
-    loadGame(sgin, ID)
-    time.sleep(1)
     recProc = startRecording(filename, ID, DISPLAY)
     time.sleep(0.2)
     hitKey(ID, keyObj.key, 300)
     time.sleep(RECORD_TIME)
     stopRecording(recProc)
-    saveGame(sgout, ID)
     
     #Step 2: Output video frames to temporary directory
     subprocess.call(["avconv", "-i", filename, "-r", "30", "-f", "image2", "Temp/%d.png"])
     
-    #Step 3: Start with the last frame, and go back until frame changes
+    #Step 3: Superimpose the text and the gameboy control
     NFiles = len([f for f in os.listdir("Temp") if f[-3:] == 'png'])
-    i = NFiles
-    lastFrame = scipy.misc.imread("Temp/%i.png"%i)
-    i = i - 1
-    while i > 0:
-        thisFrame = scipy.misc.imread("Temp/%i.png"%i)
-        diffSum = np.sum(np.abs(thisFrame - lastFrame))
-        if diffSum >= 0:
-            plt.clf()
-            plt.subplot(131)
-            plt.imshow(thisFrame); plt.title("This Frame %i"%i)
-            plt.subplot(132)
-            plt.imshow(lastFrame); plt.title("Last Frame: %i"%NFiles)
-            plt.subplot(133)
-            plt.imshow(thisFrame-lastFrame); plt.title("Difference: %g"%diffSum)
-            plt.colorbar()
-            plt.savefig("Temp/diff%i.png"%i)
-        lastFrame = thisFrame
-        i = i - 1
-    print("Removing %i frames"%(NFiles-i))
-    i = i + 1
-    while i <= NFiles:
-        os.remove("Temp/%i.png"%i)
-        i = i + 1
     for i in range(1, NFiles+1):
-        makeFrame("Temp/%i.png"%i, keyObj, "This is test text", [8, 12])
+        makeFrameHTML("Temp/%i.png"%i, keyObj, text, wordRange)
+    return NFiles
 
-if __name__ == '__main__2':
+if __name__ == '__main__':
     launchGame()
     time.sleep(1)
     ID = getWindowID()
@@ -182,11 +190,11 @@ if __name__ == '__main__2':
     stopRecording(recProc)
     #saveGame("startScreen.sgm", ID)
 
-if __name__ == '__main__':
+if __name__ == '__main__2':
     launchGame()
     time.sleep(1)
     ID = getWindowID()
-    hitKeyAndRecord(ID, KEYS[0], "RightTest.avi", "BEGINNING.sgm", "BEGINNING_RIGHT.sgm")
+    hitKeyAndRecord(ID, KEYS["Left"], "RightTest.avi", "BEGINNING.sgm", "BEGINNING_RIGHT.sgm")
 
 if __name__ == '__main__2':
     launchGame()

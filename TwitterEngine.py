@@ -7,7 +7,7 @@ except:
 import numpy as np
 from twython import Twython
 import os
-from nltk import word_tokenize
+import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 TRUMP_USERID = 25073877
@@ -134,6 +134,7 @@ def saveNewTweets():
     for t in newtweets:
         print(t['id'])
         saveTweet(t)
+    return len(newtweets)
 
 #Extract all of the stems and the index ranges of the original words
 def processTweet(t):
@@ -143,12 +144,14 @@ def processTweet(t):
     strs = texturl.split()
     idx = 0
     words = []
+    porter = nltk.PorterStemmer()
     for s in strs:
         try:
             X = V.fit_transform([s])
         except:
             continue
         stem = V.get_feature_names()[0]
+        stem = porter.stem(stem)
         start = text[idx:].find(s) + idx
         end = start + len(s)
         idx = end
