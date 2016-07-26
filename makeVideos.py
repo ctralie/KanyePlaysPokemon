@@ -39,6 +39,10 @@ def makeTweetVideo(stemsDict, sgin, windowID, tweetID, tweet):
         hitKeyAndRecord(windowID, keyObj, "temp%i.avi"%i)
     saveGame("Data/%i.sgm"%tweetID, windowID)
     print("")
+    fout = open("NewWords/%i.txt"%tweetID, "w")
+    for i in range(len(newwords)):
+        fout.write(newwords[i]+" ")
+    fout.close()
     
     #Step 2: Add controls and text to all frames
     FrameCount = 0
@@ -86,11 +90,11 @@ if __name__ == '__main__':
     windowID = getWindowID()
     
     #Load in all tweets and the stems dictionary
-    TweetsDict = loadAllSavedTweets(verbose = True)
-    
-    #Load in the stems dictionary, and go through tweets one by one
-    #in order of date
+    TweetsDict = loadAllSavedTweets(verbose = True)    
     stemsDict = loadStemsDictionary()
+    
+    #Go through tweets one by one in order of date, and make the movies
+    #if they haven't been made yet
     IDs = sorted(TweetsDict)
     for i in range(len(IDs)):
         print("i = %i, IDs[%i] = %i"%(i, i, IDs[i]))
@@ -98,8 +102,8 @@ if __name__ == '__main__':
             print("Skipping %i..."%IDs[i])
             continue
         else:
-            print("Making video for %i..."%IDs[i])
             #If the movie hasn't been made yet, need to make it
+            print("Making video for %i..."%IDs[i])
             savegame = "BEGINNING.sgm"
             if i > 0:
                 if not os.path.exists("Data/%i.sgm"%IDs[i-1]):
@@ -109,3 +113,7 @@ if __name__ == '__main__':
             print("******Loading saved game ", savegame, "******")
             makeTweetVideo(stemsDict, savegame, windowID, IDs[i], TweetsDict[IDs[i]])
         saveStemsDictionary(stemsDict)
+    
+    #Go through the tweets one by one and make the web pages if they haven't
+    #been made yet
+    #TODO
