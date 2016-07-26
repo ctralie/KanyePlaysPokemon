@@ -10,7 +10,7 @@ import os
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-TRUMP_USERID = 25073877
+KANYE_USERID = 169686021
 
 def scrubText(s):
     chars = {"\n":" ", "&amp;":"and"}
@@ -19,7 +19,7 @@ def scrubText(s):
     return text
 
 def removeURLs(s):
-    urls = re.findall(r'https://t.co/.{9,10}', s)
+    urls = re.findall(r'https?://t.co/.{9,10}', s)
     ret = s
     for url in urls:
         ret = ret.replace(url, "")
@@ -34,12 +34,12 @@ def getTwythonObj():
     return api
 
 def getAllTweetsUpToNow(api):
-    tweets = api.get_user_timeline(user_id = TRUMP_USERID, count=1)
+    tweets = api.get_user_timeline(user_id = KANYE_USERID, count=1)
     oldest = tweets[0]['id'] - 1
     newtweets = tweets
     while len(newtweets) > 0:
         print("Getting tweets before %s"%oldest)
-        newtweets = api.get_user_timeline(user_id = TRUMP_USERID, count=200, max_id=oldest)
+        newtweets = api.get_user_timeline(user_id = KANYE_USERID, count=200, max_id=oldest)
         tweets.extend(newtweets)
         oldest = tweets[-1]['id'] - 1
         print("%s tweets downloaded so far..."%(len(tweets)))
@@ -49,7 +49,7 @@ def getNewTweets(api, latestid):
     print("Getting tweets after %i..."%latestid)
     tweets = []
     since_id = latestid
-    newtweets = api.get_user_timeline(user_id = TRUMP_USERID, count = 200, since_id = since_id)
+    newtweets = api.get_user_timeline(user_id = KANYE_USERID, count = 200, since_id = since_id)
     while len(newtweets) > 0:
         newtweets = [t for t in newtweets if t['id'] > since_id]
         tweets.extend(newtweets)
@@ -59,7 +59,7 @@ def getNewTweets(api, latestid):
         print("%s new downloaded so far..."%(len(tweets)))
         IDs = np.array([int(t['id']) for t in tweets])
         since_id = int(np.max(IDs))
-        newtweets = api.get_user_timeline(user_id = TRUMP_USERID, count = 200, since_id = since_id)        
+        newtweets = api.get_user_timeline(user_id = KANYE_USERID, count = 200, since_id = since_id)        
     return tweets
     
 
@@ -113,6 +113,13 @@ def saveTweet(tweet):
     fout.write("%s\n"%created_at)
     fout.write(text)
     fout.close()
+
+def saveAllTweetsUpToNow():
+    api = getTwythonObj()
+    tweets = getAllTweetsUpToNow(api)
+    for t in tweets:
+        print(t['id'])
+        saveTweet(t)
 
 def saveNewTweets():
     api = getTwythonObj()
