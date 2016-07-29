@@ -25,8 +25,8 @@ KEYS["Left"] = Key("Left", "Left", 0.186,  "PressingLeft.png")
 KEYS["Right"] = Key("Right", "Right", 0.186, "PressingRight.png")
 KEYS["Up"] = Key("Up", "Up", 0.186, "PressingUp.png")
 KEYS["Down"] = Key("Down", "Down", 0.186, "PressingDown.png")
-KEYS["A"] = Key("Z", "A", 0.186, "PressingA.png")
-KEYS["B"] = Key("X", "B", 0.066, "PressingB.png")
+KEYS["A"] = Key("Z", "A", 0.202, "PressingA.png")
+KEYS["B"] = Key("X", "B", 0.05, "PressingB.png")
 KEYS["Start"] = Key("Return", "Start", 0.002, "PressingStart.png")
 KEYS["Select"] = Key("BackSpace", "Select", 0.002, "PressingSelect.png")
 
@@ -177,7 +177,7 @@ def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
     
     #Finally, set up image, and report range where gameboy frame resides
     H = textImg.shape[0] + controls.shape[0]
-    I = 255*np.ones((H + 4*pad, W + 2*pad, 3))
+    I = 255*np.ones((H + 10*pad, W + 2*pad, 3))
     I[pad:pad+frame.shape[0], pad:pad+frame.shape[1], :] = frame[:, :, 0:3]
     I[pad:pad+controls.shape[0], pad+frame.shape[1]:pad+frame.shape[1]+controls.shape[1], :] = controls[:, :, 0:3]
     I[pad*3+frame.shape[0]:pad*3+frame.shape[0]+textImg.shape[0], pad:pad+textImg.shape[1], :] = textImg[:, :, 0:3]
