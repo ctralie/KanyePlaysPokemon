@@ -63,6 +63,9 @@ def makeTweetVideo(stemsDict, sgin, windowID, tweetID, tweet):
         for k in range(1, NFiles+1):
             frame = scipy.misc.imread("Temp/%i.png"%k)
             frame = scipy.misc.imresize(frame, (H, W))
+            if i == 0 and k == 1:
+                #Make thumbnail image
+                scipy.misc.imsave("Data/thumb_%i.png"%tweetID, scipy.misc.imresize(frame, 0.2))
             I[r[0]:r[1], r[2]:r[3], :] = frame[:, :, 0:3]
             scipy.misc.imsave("Temp/%i.png"%k, scipy.misc.imresize(I, 0.5))
     
@@ -77,6 +80,39 @@ def makeTweetVideo(stemsDict, sgin, windowID, tweetID, tweet):
     for i in range(FrameCount):
         os.remove("VideoStaging/%i.png"%i)
     print("Finished")
+
+def makeWebPage(IDs, idx, date, stemsDict):
+    fin = open("NewWords/%i.txt"%IDs[idx])
+    lines = fin.readlines()
+    newwords = []
+    if len(lines) > 0:
+        newwords = lines[0].split()
+    fin.close()
+    
+    fin = open("PageTemplate.html")
+    lines = fin.readlines()
+    fin.close()
+    s = "".join(lines)
+    
+    s = s.replace("DATEGOESHERE", date)
+    if idx > 0:
+        s = s.replace("PREVGOESHERE", "<h2><a href = \"%i.html\"><--Prev      </a></h2>"%IDs[idx-1])
+    else:
+        s = s.replace("PREVGOESHERE", " ")
+    if idx < len(IDs) - 1:
+        s = s.replace("NEXTGOESHERE", "<h2><a href = \"%i.html\">      Next--></a></h2>"%IDs[idx+1])
+    s = s.replace("VIDEOGOESHERE", "../Data/%i.ogg"%IDs[idx])
+    
+    nwstr = ""
+    if len(newwords) > 0:
+        nwstr = "<h3>New Words</h3>"
+        for w in newwords:
+            nwstr += "<tr><td><h3>%s</h3></td><td><img src = \"../ControllerImages/%s.png\"></td></tr>"%(w, stemsDict[w])
+    s = s.replace("NEWWORDSGOHERE", nwstr)
+    
+    fout = open("Pages/%i.html"%IDs[idx], "w")
+    fout.write(s)
+    fout.close()
 
 if __name__ == '__main__':
     #Check for new tweets
@@ -96,11 +132,10 @@ if __name__ == '__main__':
     #Go through tweets one by one in order of date, and make the movies
     #if they haven't been made yet
     IDs = sorted(TweetsDict)
-    for i in range(len(IDs)):
+    for i in range(5):#range(len(IDs)):
         print("i = %i, IDs[%i] = %i"%(i, i, IDs[i]))
         if os.path.exists("Data/%i.ogg"%IDs[i]):
             print("Skipping %i..."%IDs[i])
-            continue
         else:
             #If the movie hasn't been made yet, need to make it
             print("Making video for %i..."%IDs[i])
@@ -112,8 +147,25 @@ if __name__ == '__main__':
                 savegame = "Data/%i.sgm"%IDs[i-1]
             print("******Loading saved game ", savegame, "******")
             makeTweetVideo(stemsDict, savegame, windowID, IDs[i], TweetsDict[IDs[i]])
+        makeWebPage(IDs, i, TweetsDict[IDs[i]].date, stemsDict)        
         saveStemsDictionary(stemsDict)
     
-    #Go through the tweets one by one and make the web pages if they haven't
-    #been made yet
-    #TODO
+    #Make index page
+    fout = open("Pages/index.html", "w")
+    fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1><h2><a href = index.html>Index</a></h2><h2><a href = dictionary.html>Dictionary</a></h2>")
+    fout.write("<table><tr><td><h3>Date</h3></td><td><h3>Thumbnail</h3></td><td><h3>Tweet</h3></td></tr>")
+    IDs.reverse()
+    for ID in IDs:
+        tweet = TweetsDict[ID]
+        fout.write("<tr><td><a href = \"%i.html\">%s</a></td><td><a href = \"%i.html\"><img src = \"../Data/thumb_%i.png\"></a></td><td>%s</td></tr>\n"%(ID, tweet.date, ID, ID, tweet.text))
+    fout.write("</table></body></html")
+    fout.close()
+    
+    #Make dictionary page
+    fout = open("Pages/dictionary.html", "w")
+    fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1><h2><a href = index.html>Index</a></h2><h2><a href = dictionary.html>Dictionary</a></h2>")
+    fout.write("<table><tr><td><h3>Word</h3></td><td><h3>Gameboy Key</h3></td></tr>")
+    for s in sorted(stemsDict):
+        fout.write("<tr><td><h3>%s</h3></td><td><img src = \"../ControllerImages/%s.png\"></td></tr>\n"%(s, stemsDict[s]))
+    fout.write("</table></body></html>")
+    fout.close()
