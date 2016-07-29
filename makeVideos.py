@@ -132,7 +132,7 @@ if __name__ == '__main__':
     #Go through tweets one by one in order of date, and make the movies
     #if they haven't been made yet
     IDs = sorted(TweetsDict)
-    for i in range(5):#range(len(IDs)):
+    for i in range(len(IDs)):
         print("i = %i, IDs[%i] = %i"%(i, i, IDs[i]))
         if os.path.exists("Data/%i.ogg"%IDs[i]):
             print("Skipping %i..."%IDs[i])
