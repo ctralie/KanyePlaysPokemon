@@ -169,3 +169,8 @@ if __name__ == '__main__':
         fout.write("<tr><td><h3>%s</h3></td><td><img src = \"../ControllerImages/%s.png\"></td></tr>\n"%(s, stemsDict[s]))
     fout.write("</table></body></html>")
     fout.close()
+    
+    #Make redirect
+    fout = open("index.html", "w")
+    fout.write("<html><head><meta http-equiv=\"refresh\" content=\"0; url=Pages/%i.html\"></head><body></body></html>"%IDs[0])
+    fout.close()
