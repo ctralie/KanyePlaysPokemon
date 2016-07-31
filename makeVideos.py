@@ -101,6 +101,8 @@ def makeWebPage(IDs, idx, date, stemsDict):
         s = s.replace("PREVGOESHERE", " ")
     if idx < len(IDs) - 1:
         s = s.replace("NEXTGOESHERE", "<h2><a href = \"%i.html\">      Next--></a></h2>"%IDs[idx+1])
+    else:
+        s = s.replace("NEXTGOESHERE", " ")
     s = s.replace("VIDEOGOESHERE", "../Data/%i.ogg"%IDs[idx])
     
     nwstr = ""
@@ -151,14 +153,15 @@ if __name__ == '__main__':
         saveStemsDictionary(stemsDict)
     
     #Make index page
-    fout = open("Pages/index.html", "w")
-    fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1><h2><a href = index.html>Index</a></h2><h2><a href = dictionary.html>Dictionary</a></h2>")
+    fout = open("index.html", "w")
+    fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1><h2><a href = index.html>Index</a></h2><h2><a href = Pages/dictionary.html>Dictionary</a></h2>")
     fout.write("<table><tr><td><h3>Date</h3></td><td><h3>Thumbnail</h3></td><td><h3>Tweet</h3></td></tr>")
     IDs.reverse()
     for ID in IDs:
         tweet = TweetsDict[ID]
-        fout.write("<tr><td><a href = \"%i.html\">%s</a></td><td><a href = \"%i.html\"><img src = \"../Data/thumb_%i.png\"></a></td><td>%s</td></tr>\n"%(ID, tweet.date, ID, ID, tweet.text))
-    fout.write("</table></body></html")
+        fout.write("<tr><td><a href = \"Pages/%i.html\">%s</a></td><td><a href = \"Pages/%i.html\"><img src = \"Data/thumb_%i.png\"></a></td><td>%s</td></tr>\n"%(ID, tweet.date, ID, ID, tweet.text))
+    fout.write("</table>")
+    fout.write("</body></html>")
     fout.close()
     
     #Make dictionary page
@@ -170,7 +173,10 @@ if __name__ == '__main__':
     fout.write("</table></body></html>")
     fout.close()
     
-    #Make redirect
-    fout = open("index.html", "w")
-    fout.write("<html><head><meta http-equiv=\"refresh\" content=\"0; url=Pages/%i.html\"></head><body></body></html>"%IDs[0])
-    fout.close()
+#    #Make redirect
+#    fout = open("index.html", "w")
+#    fout.write("<html><head><meta http-equiv=\"refresh\" content=\"0; url=Pages/%i.html\"></head><body></body></html>"%IDs[0])
+#    fout.close()
+    
+    #Close the window
+    closeGame(windowID)
