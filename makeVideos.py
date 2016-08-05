@@ -1,5 +1,6 @@
 from PokemonEngine import *
 from TwitterEngine import *
+import subprocess as SP
 import sys
 import shutil
 
@@ -65,7 +66,7 @@ def makeTweetVideo(stemsDict, sgin, windowID, tweetID, tweet):
             frame = scipy.misc.imresize(frame, (H, W))
             if i == 0 and k == 1:
                 #Make thumbnail image
-                scipy.misc.imsave("Data/thumb_%i.png"%tweetID, scipy.misc.imresize(frame, 0.2))
+                scipy.misc.imsave("Data/thumb_%i.png"%tweetID, scipy.misc.imresize(frame, 0.1))
             I[r[0]:r[1], r[2]:r[3], :] = frame[:, :, 0:3]
             scipy.misc.imsave("Temp/%i.png"%k, scipy.misc.imresize(I, 0.5))
     
@@ -81,7 +82,7 @@ def makeTweetVideo(stemsDict, sgin, windowID, tweetID, tweet):
         os.remove("VideoStaging/%i.png"%i)
     print("Finished")
 
-def makeWebPage(IDs, idx, date, stemsDict):
+def makeWebPage(IDs, idx, text, date, stemsDict):
     fin = open("NewWords/%i.txt"%IDs[idx])
     lines = fin.readlines()
     newwords = []
@@ -105,9 +106,9 @@ def makeWebPage(IDs, idx, date, stemsDict):
         s = s.replace("NEXTGOESHERE", " ")
     s = s.replace("VIDEOGOESHERE", "../Data/%i.ogg"%IDs[idx])
     
-    nwstr = ""
+    nwstr = "<BR><BR><h4>"+text+"</h4>"
     if len(newwords) > 0:
-        nwstr = "<h3>New Words</h3>"
+        nwstr = nwstr + "<h3>New Words</h3>"
         for w in newwords:
             nwstr += "<tr><td><h3>%s</h3></td><td><img src = \"../ControllerImages/%s.png\"></td></tr>"%(w, stemsDict[w])
     s = s.replace("NEWWORDSGOHERE", nwstr)
@@ -133,6 +134,7 @@ if __name__ == '__main__':
     
     #Go through tweets one by one in order of date, and make the movies
     #if they haven't been made yet
+    newIDsIdx = []
     IDs = sorted(TweetsDict)
     for i in range(len(IDs)):
         print("i = %i, IDs[%i] = %i"%(i, i, IDs[i]))
@@ -141,6 +143,7 @@ if __name__ == '__main__':
         else:
             #If the movie hasn't been made yet, need to make it
             print("Making video for %i..."%IDs[i])
+            newIDsIdx.append(i)
             savegame = "BEGINNING.sgm"
             if i > 0:
                 if not os.path.exists("Data/%i.sgm"%IDs[i-1]):
@@ -149,7 +152,7 @@ if __name__ == '__main__':
                 savegame = "Data/%i.sgm"%IDs[i-1]
             print("******Loading saved game ", savegame, "******")
             makeTweetVideo(stemsDict, savegame, windowID, IDs[i], TweetsDict[IDs[i]])
-        makeWebPage(IDs, i, TweetsDict[IDs[i]].date, stemsDict)        
+        makeWebPage(IDs, i, TweetsDict[IDs[i]].text, TweetsDict[IDs[i]].date, stemsDict)        
         saveStemsDictionary(stemsDict)
     
     #Make index page
@@ -180,3 +183,18 @@ if __name__ == '__main__':
     
     #Close the window
     closeGame(windowID)
+    
+    #Copy new files to S3
+    newList = {}
+    newList['index.html'] = ''
+    newList['Pages/dictionary.html'] = ''
+    for idx in newIDsIdx:
+        newList["Data/%i.ogg"%IDs[idx]] = ''
+        newList["Pages/%i.html"%IDs[idx]] = ''
+        if idx > 0:
+            newList["Data/%i.ogg"%IDs[idx-1]] = ''
+            newList["Pages/%i.html"%IDs[idx-1]] = ''
+    bucket = "www.kanyeplayspokemon.com"
+    for s in newList:
+        print("Uploading %s"%s)
+        p = SP.Popen("s3cmd put %s s3://%s/sPokemon/%s"%(s, bucket, s), shell = True, stdout = SP.PIPE, stderr = SP.PIPE, close_fds = True)
