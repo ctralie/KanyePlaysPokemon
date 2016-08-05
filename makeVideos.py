@@ -1,6 +1,6 @@
 from PokemonEngine import *
 from TwitterEngine import *
-import subprocess as SP
+import subprocess
 import sys
 import shutil
 
@@ -155,9 +155,14 @@ if __name__ == '__main__':
         makeWebPage(IDs, i, TweetsDict[IDs[i]].text, TweetsDict[IDs[i]].date, stemsDict)        
         saveStemsDictionary(stemsDict)
     
+    fin = open("statcounter.html")
+    statcounter = "".join(fin.readlines())
+    fin.close()
     #Make index page
     fout = open("index.html", "w")
-    fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1><h2><a href = index.html>Index</a></h2><h2><a href = Pages/dictionary.html>Dictionary</a></h2>")
+    fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1>\n\n")
+    fout.write(statcounter)
+    fout.write("\n\n<h2><a href = index.html>Index</a></h2><h2><a href = Pages/dictionary.html>Dictionary</a></h2>")
     fout.write("<table><tr><td><h3>Date</h3></td><td><h3>Thumbnail</h3></td><td><h3>Tweet</h3></td></tr>")
     IDs.reverse()
     for ID in IDs:
@@ -169,7 +174,9 @@ if __name__ == '__main__':
     
     #Make dictionary page
     fout = open("Pages/dictionary.html", "w")
-    fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1><h2><a href = index.html>Index</a></h2><h2><a href = dictionary.html>Dictionary</a></h2>")
+    fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1>")
+    fout.write(statcounter)
+    fout.write("<h2><a href = index.html>Index</a></h2><h2><a href = dictionary.html>Dictionary</a></h2>")
     fout.write("<table><tr><td><h3>Word</h3></td><td><h3>Gameboy Key</h3></td></tr>")
     for s in sorted(stemsDict):
         fout.write("<tr><td><h3>%s</h3></td><td><img src = \"../ControllerImages/%s.png\"></td></tr>\n"%(s, stemsDict[s]))
@@ -197,4 +204,4 @@ if __name__ == '__main__':
     bucket = "www.kanyeplayspokemon.com"
     for s in newList:
         print("Uploading %s"%s)
-        p = SP.Popen("s3cmd put %s s3://%s/sPokemon/%s"%(s, bucket, s), shell = True, stdout = SP.PIPE, stderr = SP.PIPE, close_fds = True)
+        subprocess.call(["s3cmd", "put", s, "s3://%s/sPokemon/%s"%(bucket, s)])
