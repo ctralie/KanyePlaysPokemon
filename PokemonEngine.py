@@ -84,9 +84,11 @@ def saveGame(filename, ID):
     subprocess.call(["xdotool", "keyup", "--window", "%i"%ID, "shift"])
     if not os.path.exists(SAVEGAMELOC):
         print("ERROR TYPE 1 saving game.  Retrying...")
+        time.sleep(1)
         saveGame(filename, ID)
     elif os.stat(SAVEGAMELOC).st_size == 0:
         print("ERROR TYPE 2 saving game.  Retrying...")
+        time.sleep(1)
         saveGame(filename, ID)
     else:
         shutil.copyfile(SAVEGAMELOC, filename)
@@ -96,6 +98,11 @@ def loadGame(filename, ID):
         os.remove(SAVEGAMELOC)
     shutil.copyfile(filename, SAVEGAMELOC)
     subprocess.call(["xdotool", "key", "--window", "%i"%ID, "F1"])
+
+def closeGame(ID):
+    subprocess.call(["xdotool", "keydown", "--window", "%i"%ID, "alt"])
+    subprocess.call(["xdotool", "key", "--window", "%i"%ID, "F4"])
+    subprocess.call(["xdotool", "keyup", "--window", "%i"%ID, "alt"])
 
 #Record window with ID to a file
 def startRecording(filename, ID, display = ":1.0"):

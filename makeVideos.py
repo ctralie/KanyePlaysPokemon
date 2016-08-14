@@ -76,7 +76,10 @@ def makeTweetVideo(stemsDict, sgin, windowID, tweetID, tweet):
         FrameCount += NFiles
     
     print("Saving final video...")
+    #Make ogg video
     subprocess.call(["avconv", "-r", "15", "-i", "VideoStaging/%d.png", "-b", "20000k", "-r", "%i"%FRAMESPERSEC, "Data/%i.ogg"%tweetID], stdout = FNULL, stderr = FNULL)
+    #Make mp4 video
+    subprocess.call(["avconv", "-i",  "Data/%i.ogg"%tweetID, "-c:v", "libx264", "-s", "640x480", "Data/%i.mp4"%tweetID])
     #Clean up staging area
     for i in range(FrameCount):
         os.remove("VideoStaging/%i.png"%i)
@@ -104,7 +107,8 @@ def makeWebPage(IDs, idx, text, date, stemsDict):
         s = s.replace("NEXTGOESHERE", "<h2><a href = \"%i.html\">      Next--></a></h2>"%IDs[idx+1])
     else:
         s = s.replace("NEXTGOESHERE", " ")
-    s = s.replace("VIDEOGOESHERE", "../Data/%i.ogg"%IDs[idx])
+    s = s.replace("VIDEOOGGGOESHERE", "../Data/%i.ogg"%IDs[idx])
+    s = s.replace("VIDEOMP4GOESHERE", "../Data/%i.mp4"%IDs[idx])
     
     nwstr = "<BR><BR><h4>"+text+"</h4>"
     if len(newwords) > 0:
@@ -161,6 +165,7 @@ if __name__ == '__main__':
     #Make index page
     fout = open("index.html", "w")
     fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1>\n\n")
+    fout.write("<table width = 600><tr><td><h3>Kanye's tweets send commands to the Gameboy classic. Every time a new word comes in, it's randomly assigned to a comand, where it stays for the rest of time. Click on a date or thumbnail to see what each tweet does</h3></td></tr></table>\n")
     fout.write(statcounter)
     fout.write("\n\n<h2><a href = index.html>Index</a></h2><h2><a href = Pages/dictionary.html>Dictionary</a></h2>")
     fout.write("<table><tr><td><h3>Date</h3></td><td><h3>Thumbnail</h3></td><td><h3>Tweet</h3></td></tr>")
@@ -171,6 +176,7 @@ if __name__ == '__main__':
     fout.write("</table>")
     fout.write("</body></html>")
     fout.close()
+    IDs.reverse()
     
     #Make dictionary page
     fout = open("Pages/dictionary.html", "w")
@@ -183,11 +189,6 @@ if __name__ == '__main__':
     fout.write("</table></body></html>")
     fout.close()
     
-#    #Make redirect
-#    fout = open("index.html", "w")
-#    fout.write("<html><head><meta http-equiv=\"refresh\" content=\"0; url=Pages/%i.html\"></head><body></body></html>"%IDs[0])
-#    fout.close()
-    
     #Close the window
     closeGame(windowID)
     
@@ -197,9 +198,10 @@ if __name__ == '__main__':
     newList['Pages/dictionary.html'] = ''
     for idx in newIDsIdx:
         newList["Data/%i.ogg"%IDs[idx]] = ''
+        newList["Data/%i.mp4"%IDs[idx]] = ''
         newList["Pages/%i.html"%IDs[idx]] = ''
+        newList["Data/thumb_%i.png"%IDs[idx]] = ''
         if idx > 0:
-            newList["Data/%i.ogg"%IDs[idx-1]] = ''
             newList["Pages/%i.html"%IDs[idx-1]] = ''
     bucket = "www.kanyeplayspokemon.com"
     for s in newList:
