@@ -165,7 +165,7 @@ if __name__ == '__main__':
     #Make index page
     fout = open("index.html", "w")
     fout.write("<html><head><link rel=\"stylesheet\" type=\"text/css\" href=\"main.css\" /><meta charset=\"UTF-8\"></head><body><h1>Kanye Plays Pokemon</h1>\n\n")
-    fout.write("<table width = 600><tr><td><h3>Kanye's tweets send commands to the Gameboy classic. Every time a new word comes in, it's randomly assigned to a comand, where it stays for the rest of time. Click on a date or thumbnail to see what each tweet does</h3></td></tr></table>\n")
+    fout.write("<table width = 600><tr><td><h3><a href = \"https://twitter.com/kanyewest\">Kanye's tweets</a> send commands to the Gameboy classic. Every time a new word comes in, it's randomly assigned to a command, where it stays for the rest of time. Click on a date or thumbnail to see what each tweet does</h3></td></tr></table>\n")
     fout.write(statcounter)
     fout.write("\n\n<h2><a href = index.html>Index</a></h2><h2><a href = Pages/dictionary.html>Dictionary</a></h2>")
     fout.write("<table><tr><td><h3>Date</h3></td><td><h3>Thumbnail</h3></td><td><h3>Tweet</h3></td></tr>")
