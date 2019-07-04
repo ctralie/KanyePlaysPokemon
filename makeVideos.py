@@ -85,42 +85,6 @@ def makeTweetVideo(stemsDict, sgin, windowID, tweetID, tweet):
         os.remove("VideoStaging/%i.png"%i)
     print("Finished")
 
-def makeWebPage(IDs, idx, text, date, stemsDict):
-    fin = open("NewWords/%i.txt"%IDs[idx])
-    lines = fin.readlines()
-    newwords = []
-    if len(lines) > 0:
-        newwords = lines[0].split()
-    fin.close()
-    
-    fin = open("PageTemplate.html")
-    lines = fin.readlines()
-    fin.close()
-    s = "".join(lines)
-    
-    s = s.replace("DATEGOESHERE", date)
-    if idx > 0:
-        s = s.replace("PREVGOESHERE", "<h2><a href = \"%i.html\"><--Prev      </a></h2>"%IDs[idx-1])
-    else:
-        s = s.replace("PREVGOESHERE", " ")
-    if idx < len(IDs) - 1:
-        s = s.replace("NEXTGOESHERE", "<h2><a href = \"%i.html\">      Next--></a></h2>"%IDs[idx+1])
-    else:
-        s = s.replace("NEXTGOESHERE", " ")
-    s = s.replace("VIDEOOGGGOESHERE", "../Data/%i.ogg"%IDs[idx])
-    s = s.replace("VIDEOMP4GOESHERE", "../Data/%i.mp4"%IDs[idx])
-    
-    nwstr = "<BR><BR><h4>"+text+"</h4>"
-    if len(newwords) > 0:
-        nwstr = nwstr + "<h3>New Words</h3>"
-        for w in newwords:
-            nwstr += "<tr><td><h3>%s</h3></td><td><img src = \"../ControllerImages/%s.png\"></td></tr>"%(w, stemsDict[w])
-    s = s.replace("NEWWORDSGOHERE", nwstr)
-    
-    fout = open("Pages/%i.html"%IDs[idx], "w")
-    fout.write(s)
-    fout.close()
-
 if __name__ == '__main__':
     #Check for new tweets
     NTweets = saveNewTweets()

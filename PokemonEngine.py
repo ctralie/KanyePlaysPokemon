@@ -109,7 +109,7 @@ def startRecording(filename, ID, display = ":1.0"):
     (pos, geom) = getWindowGeometry(ID)
     if PYTHON3:
         pos = str(pos)[2:-1]
-    command = ["avconv", "-f", "x11grab", "-r", "30", "-s", geom, "-i", "%s+%s"%(display, pos), "-qscale", "0", filename]
+    command = ["ffmpeg", "-f", "x11grab", "-r", "30", "-s", geom, "-i", "%s+%s"%(display, pos), "-qscale", "0", filename]
     FNULL = open(os.devnull, 'w')
     proc = subprocess.Popen(command, stdout = FNULL, stderr = FNULL)
     return proc

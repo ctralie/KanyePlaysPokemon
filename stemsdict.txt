@@ -1,0 +1,8 @@
+up Up
+down Down
+left Left
+right Right
+start Start
+select Select
+a A
+b B
