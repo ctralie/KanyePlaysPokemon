@@ -130,10 +130,11 @@ def respondToTweets(api, windowID):
     print("%i new tweets"%len(statuses))
     for s in statuses:
         text = s['text']
+        tweetID = s['id']
+        laststatus = "%s"%tweetID
         if not contains_commands(text):
             continue
         screen_name = s['user']['screen_name']
-        tweetID = s['id']
         sgm = "Data/%s.sgm"%laststatus
         makeTweetVideo(sgm, windowID, tweetID, text)
 
@@ -147,7 +148,7 @@ def respondToTweets(api, windowID):
         res = api.update_status(status="@%s This is the end of your sequence"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
         res = api.retweet(id=res['id_str'])
 
-        laststatus = "%s"%tweetID
+        
     fout = open("LASTSTATUS.txt", "w")
     fout.write("%s"%laststatus)
     fout.close()
