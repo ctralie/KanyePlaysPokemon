@@ -67,6 +67,7 @@ def makeTweetVideo(sgin, windowID, tweetID, text):
     #Step 2: Add controls and text to all frames
     FrameCount = 0
     FNULL = open(os.devnull, 'w')
+    lastFrame = None
     for i in range(len(words)):
         #Output video frames to temporary directory    
         if using[i] == 1:
@@ -83,33 +84,69 @@ def makeTweetVideo(sgin, windowID, tweetID, text):
                 frame = skimage.io.imread("Temp/%i.png"%k)
                 frame = skimage.transform.resize(frame, (H, W))*255
                 I[r[0]:r[1], r[2]:r[3], :] = np.array(frame[:, :, 0:3], dtype=np.uint8)
-                im = Image.fromarray(I)
+                I2 = skimage.transform.rescale(I, 0.3, multichannel=True)*255
+                I2 = np.array(I2, dtype=np.uint8)
+                im = Image.fromarray(I2)
                 im.save("Temp/%i.png"%k)
+                lastFrame = im
         
             for k in range(NFiles):
                 shutil.copyfile("Temp/%i.png"%(k+1), "VideoStaging/%i.png"%(k+FrameCount))
                 os.remove("Temp/%i.png"%(k+1))
             FrameCount += NFiles
-    
+    if lastFrame:
+        lastFrame.save("LastFrame.png")
     print("Saving final video...")
     #Make GIF
     filename = "Data/%i.gif"%tweetID
     if os.path.exists(filename):
         os.remove(filename)
-    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-b", "20000k", "-r", "%i"%FRAMESPERSEC, filename], stdout = FNULL, stderr = FNULL)
+    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-r", "%i"%FRAMESPERSEC, "-fs", "4M", filename], stdout = FNULL, stderr = FNULL)
     #Clean up staging area
     for i in range(FrameCount):
         os.remove("VideoStaging/%i.png"%i)
     print("Finished")
 
-if __name__ == '__main__':
+def testMakeTweetVideo():
     launchGame()
     time.sleep(1)
     ID = getWindowID()
-    makeTweetVideo("BEGINNING.sgm", ID, 123, "I want it to go left and then right up down start")
+    makeTweetVideo("BEGINNING.sgm", ID, 123, "First tweet!  Left up up up up right right right right right up up down down down down down down left left left left down")
 
-if __name__ == '__main__2':
+def respondToTweets(api, windowID):
+    fin = open("LASTSTATUS.txt")
+    laststatus = fin.read().strip()
+    fin.close()
+    statuses = api.search(q="@twitplayspokem", since_id=int(laststatus))['statuses']
+    statuses.reverse()
+    print("%i new tweets"%len(statuses))
+    for s in statuses:
+        text = s['text']
+        screen_name = s['user']['screen_name']
+        tweetID = s['id']
+        sgm = "Data/%s.sgm"%laststatus
+        makeTweetVideo(sgm, windowID, tweetID, text)
+
+        photo = open("Data/%i.gif"%tweetID, 'rb')
+        response = api.upload_media(media=photo)
+        res = api.update_status(status="@%s"%screen_name, in_reply_to_status_id = tweetID, media_ids=[response['media_id']])
+        res = api.retweet(id=res['id_str'])
+
+        photo = open("LastFrame.png", 'rb')
+        response = api.upload_media(media=photo)
+        res = api.update_status(status="@%s Here's where you ended up"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
+        res = api.retweet(id=res['id_str'])
+
+        laststatus = "%s"%tweetID
+    fout = open("LASTSTATUS.txt", "w")
+    fout.write("%s"%laststatus)
+    fout.close()
+
+if __name__ == '__main__':
     api = getTwythonObj()
-    photo = open('Left.gif', 'rb')
-    response = api.upload_media(media=photo)
-    api.update_status(status='Going left!', media_ids=[response['media_id']])
+    launchGame()
+    time.sleep(1)
+    ID = getWindowID()
+    while True:
+        respondToTweets(api, ID)
+        time.sleep(30)
