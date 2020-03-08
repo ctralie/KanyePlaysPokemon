@@ -10,8 +10,9 @@ import scipy.misc
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
 PYTHON3 = True
 DISPLAY = ":0.0"
-RECORD_TIME = 0.8
+RECORD_TIME = 1
 FRAMESPERSEC = 15
+Y_OFFSET = -38
 
 class Key(object):
     def __init__(self, key, actualkey, prob, image):
@@ -112,6 +113,8 @@ def startRecording(ID, filename, time = 10):
         pos = str(pos)[2:-1]
     width, height = geom.split("x")
     x, y = pos.split(",")
+    y = int(y)
+    y = "%i"%(y + Y_OFFSET)
     
     command = ["byzanz-record", "-d", "%i"%time, "-x", x, "-y", y, "-w", width, "-h", height, filename]
     print(command)
@@ -197,6 +200,18 @@ def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
     r = [pad, pad+frame.shape[0], pad, pad+frame.shape[1]]
     return (I, r)
 
+
+def hitKeyAndRecord(ID, keyObj, filename):
+    """
+    Hits a key, records the video
+    """
+    if os.path.exists(filename):
+        os.remove(filename)
+    
+    #Step 1: Load the saved game state and record the action
+    recProc = startRecording(ID, filename, RECORD_TIME)
+    hitKey(ID, keyObj.key, 400)
+
 def randomWalk(nframes):
     import time
     launchGame()
@@ -216,4 +231,11 @@ def randomWalk(nframes):
     releaseKey(ID, 'space')
     #saveGame("startScreen.sgm", ID)
 
-randomWalk(100)
+#randomWalk(100)
+
+launchGame()
+time.sleep(1)
+ID = getWindowID()
+time.sleep(1)
+loadGame("BEGINNING.sgm", ID)
+hitKeyAndRecord(ID, KEYS["Left"], "Left.gif")
