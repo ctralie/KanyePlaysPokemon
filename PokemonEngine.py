@@ -105,11 +105,15 @@ def closeGame(ID):
     subprocess.call(["xdotool", "keyup", "--window", "%i"%ID, "alt"])
 
 #Record window with ID to a file
-def startRecording(filename, ID, display = ":1.0"):
+def startRecording(ID, filename, time = 10):
     (pos, geom) = getWindowGeometry(ID)
     if PYTHON3:
+        geom = str(geom)[2:-1]
         pos = str(pos)[2:-1]
-    command = ["ffmpeg", "-f", "x11grab", "-r", "30", "-s", geom, "-i", "%s+%s"%(display, pos), "-qscale", "0", filename]
+    width, height = geom.split("x")
+    x, y = pos.split(",")
+    
+    command = ["byzanz-record", "-d", "%i"%time, "-x", x, "-y", y, "-w", width, "-h", height, filename]
     print(command)
     FNULL = open(os.devnull, 'w')
     proc = subprocess.Popen(command, stdout = FNULL, stderr = FNULL)
@@ -192,46 +196,24 @@ def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
     
     r = [pad, pad+frame.shape[0], pad, pad+frame.shape[1]]
     return (I, r)
-    
 
-#Hits a key, records the video, and superimposes the gameboy
-#controls and highlighted text in each frame
-def hitKeyAndRecord(ID, keyObj, filename):
-    if os.path.exists(filename):
-        os.remove(filename)
-    
-    #Step 1: Load the saved game state and record the action
-    recProc = startRecording(filename, ID, DISPLAY)
-    hitKey(ID, keyObj.key, 400)
-    time.sleep(RECORD_TIME)
-    stopRecording(recProc)
-
-if __name__ == '__main__':
+def randomWalk(nframes):
+    import time
     launchGame()
     time.sleep(1)
     ID = getWindowID()
-    recProc = startRecording("test.avi", ID, DISPLAY)
     time.sleep(1)
     loadGame("BEGINNING.sgm", ID)
-    #holdKey(ID, 'space')
+    holdKey(ID, 'space')
     #time.sleep(3)
     keysList = list(KEYS.keys())
-    for i in range(10):
+    delay = 1000/30
+    time = int(np.ceil(delay*nframes*1.1/1000))
+    recProc = startRecording(ID, "test.gif", time)
+    for i in range(nframes):
         key = KEYS[keysList[np.random.randint(len(KEYS))]]
-        hitKey(ID, key.key, 1000/30)
-    #releaseKey(ID, 'space')
-    stopRecording(recProc)
+        hitKey(ID, key.key, delay)
+    releaseKey(ID, 'space')
     #saveGame("startScreen.sgm", ID)
 
-if __name__ == '__main__2':
-    launchGame()
-    time.sleep(1)
-    ID = getWindowID()
-    hitKeyAndRecord(ID, KEYS["Left"], "RightTest.avi", "BEGINNING.sgm", "BEGINNING_RIGHT.sgm")
-
-if __name__ == '__main__2':
-    launchGame()
-    time.sleep(1)
-    ID = getWindowID()
-    loadGame("BEGINNING.sgm", ID)
-
+randomWalk(100)
