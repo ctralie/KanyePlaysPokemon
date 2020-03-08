@@ -3,9 +3,9 @@ import time
 import os
 import shutil
 import numpy as np
-import scipy.misc
 import matplotlib.pyplot as plt
-import scipy.misc
+import skimage
+from PIL import Image
 
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
 PYTHON3 = True
@@ -22,14 +22,14 @@ class Key(object):
         self.image = image
 
 KEYS = {}
-KEYS["Left"] = Key("Left", "Left", 0.186,  "PressingLeft.png")
-KEYS["Right"] = Key("Right", "Right", 0.186, "PressingRight.png")
-KEYS["Up"] = Key("Up", "Up", 0.186, "PressingUp.png")
-KEYS["Down"] = Key("Down", "Down", 0.186, "PressingDown.png")
-KEYS["A"] = Key("Z", "A", 0.202, "PressingA.png")
-KEYS["B"] = Key("X", "B", 0.05, "PressingB.png")
-KEYS["Start"] = Key("Return", "Start", 0.002, "PressingStart.png")
-KEYS["Select"] = Key("BackSpace", "Select", 0.002, "PressingSelect.png")
+KEYS["left"] = Key("Left", "left", 0.186,  "PressingLeft.png")
+KEYS["right"] = Key("Right", "right", 0.186, "PressingRight.png")
+KEYS["up"] = Key("Up", "up", 0.186, "PressingUp.png")
+KEYS["down"] = Key("Down", "down", 0.186, "PressingDown.png")
+KEYS["a"] = Key("Z", "a", 0.202, "PressingA.png")
+KEYS["b"] = Key("X", "b", 0.05, "PressingB.png")
+KEYS["start"] = Key("Return", "Start", 0.002, "PressingStart.png")
+KEYS["select"] = Key("BackSpace", "Select", 0.002, "PressingSelect.png")
 
 def getRandomKey():
     num = np.random.rand()
@@ -117,7 +117,6 @@ def startRecording(ID, filename, time = 10):
     y = "%i"%(y + Y_OFFSET)
     
     command = ["byzanz-record", "-d", "%i"%time, "-x", x, "-y", y, "-w", width, "-h", height, filename]
-    print(command)
     FNULL = open(os.devnull, 'w')
     proc = subprocess.Popen(command, stdout = FNULL, stderr = FNULL)
     return proc
@@ -133,28 +132,26 @@ def hitKey(ID, key, delay = 400):
 def holdKey(ID, key):
     #A delay (ms) is needed to make sure key taps register in the game
     command = ["xdotool", "keydown", "--window", "%i"%ID, key]
-    print(command)
     subprocess.call(command)
 
 def releaseKey(ID, key):
     #A delay (ms) is needed to make sure key taps register in the game
     command = ["xdotool", "keyup", "--window", "%i"%ID, key]
-    print(command)
     subprocess.call(command)
 
 #Return (image, [sx, ex, sy, ey] range for other frames)
 def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
     #Load in and resize frame    
-    frame = scipy.misc.imread(filename)
+    frame = skimage.io.imread(filename)
     W = 640
     frac = float(W)/frame.shape[1]
-    frame = scipy.misc.imresize(frame, frac)
+    frame = skimage.transform.rescale(frame, frac, multichannel=False)
     
     #Load in and resize controls
-    controls = scipy.misc.imread("ControllerImages/%s"%keyObj.image)
+    controls = skimage.io.imread("ControllerImages/%s"%keyObj.image)
     H = frame.shape[0]
     frac = float(H)/controls.shape[0]
-    controls = scipy.misc.imresize(controls, frac)
+    controls = skimage.transform.rescale(controls, frac, multichannel=False)
     
     #Figure out the width
     W = int(np.ceil(frame.shape[1] + controls.shape[1]))
@@ -166,6 +163,8 @@ def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
     fin.close()
     s = s.replace("WIDTHGOESHERE", "%i"%W)
     textHTML = text
+    print("textHTML", textHTML)
+    print("wordRange", wordRange)
     before = textHTML[0:wordRange[0]]
     during = textHTML[wordRange[0]:wordRange[1]]
     after = textHTML[wordRange[1]:]
@@ -180,24 +179,26 @@ def makeFrameTemplate(filename, keyObj, text, wordRange, pad = 10):
     subprocess.call(["convert", "temp.png", "-trim", "+repage", "temp.png"], stdout = FNULL, stderr = FNULL)
     #There's a small border around all sides that causes autocrop to fail the first
     #time
-    text = scipy.misc.imread("temp.png")
+    text = skimage.io.imread("temp.png")
     text = text[2:-2, 2:-2, :]
-    scipy.misc.imsave("temp.png", text)
+    im = Image.fromarray(text)
+    im.save("temp.png")
     subprocess.call(["convert", "temp.png", "-trim", "+repage", "temp.png"], stdout = FNULL, stderr = FNULL)
     
     #Load in text
-    textImg = scipy.misc.imread("temp.png")
+    textImg = skimage.io.imread("temp.png")
     frac = float(W)/textImg.shape[1]
-    textImg = scipy.misc.imresize(textImg, frac)
+    textImg = skimage.transform.rescale(textImg, frac, multichannel=False)
     
     #Finally, set up image, and report range where gameboy frame resides
     H = textImg.shape[0] + controls.shape[0]
-    I = 255*np.ones((H + 10*pad, W + 2*pad, 3))
-    I[pad:pad+frame.shape[0], pad:pad+frame.shape[1], :] = frame[:, :, 0:3]
-    I[pad:pad+controls.shape[0], pad+frame.shape[1]:pad+frame.shape[1]+controls.shape[1], :] = controls[:, :, 0:3]
-    I[pad*3+frame.shape[0]:pad*3+frame.shape[0]+textImg.shape[0], pad:pad+textImg.shape[1], :] = textImg[:, :, 0:3]
+    I = 255*np.ones((H + 10*pad, W + 2*pad, 3), dtype=frame.dtype)
+    I[pad:pad+frame.shape[0], pad:pad+frame.shape[1], :] = frame[:, :, 0:3]*255
+    I[pad:pad+controls.shape[0], pad+frame.shape[1]:pad+frame.shape[1]+controls.shape[1], :] = controls[:, :, 0:3]*255
+    I[pad*3+frame.shape[0]:pad*3+frame.shape[0]+textImg.shape[0], pad:pad+textImg.shape[1], :] = textImg[:, :, 0:3]*255
     
     r = [pad, pad+frame.shape[0], pad, pad+frame.shape[1]]
+    I = np.array(I, dtype=np.uint8)
     return (I, r)
 
 
@@ -231,11 +232,13 @@ def randomWalk(nframes):
     releaseKey(ID, 'space')
     #saveGame("startScreen.sgm", ID)
 
+def testLeft():
+    launchGame()
+    time.sleep(1)
+    ID = getWindowID()
+    time.sleep(1)
+    loadGame("BEGINNING.sgm", ID)
+    hitKeyAndRecord(ID, KEYS["left"], "Left.gif")
+
 #randomWalk(100)
 
-launchGame()
-time.sleep(1)
-ID = getWindowID()
-time.sleep(1)
-loadGame("BEGINNING.sgm", ID)
-hitKeyAndRecord(ID, KEYS["Left"], "Left.gif")

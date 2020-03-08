@@ -5,12 +5,13 @@ except:
     from urllib2 import urlopen
 
 import numpy as np
+import matplotlib.pyplot as plt
 from twython import Twython
 import os
-import nltk
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-KANYE_USERID = 169686021
+import shutil
+import skimage
+from PIL import Image
+from PokemonEngine import *
 
 def scrubText(s):
     chars = {"\n":" ", "&amp;":"and"}
@@ -33,132 +34,79 @@ def getTwythonObj():
     api = Twython(app_key = CONSUMER_KEY, app_secret = CONSUMER_KEY_SECRET, oauth_token = ACCESS_TOKEN, oauth_token_secret = ACCESS_TOKEN_SECRET)
     return api
 
-def getAllTweetsUpToNow(api):
-    tweets = api.get_user_timeline(user_id = KANYE_USERID, count=1)
-    oldest = tweets[0]['id'] - 1
-    newtweets = tweets
-    while len(newtweets) > 0:
-        print("Getting tweets before %s"%oldest)
-        newtweets = api.get_user_timeline(user_id = KANYE_USERID, count=200, max_id=oldest)
-        tweets.extend(newtweets)
-        oldest = tweets[-1]['id'] - 1
-        print("%s tweets downloaded so far..."%(len(tweets)))
-    return tweets
 
-def getNewTweets(api, latestid):
-    print("Getting tweets after %i..."%latestid)
-    tweets = []
-    since_id = latestid
-    newtweets = api.get_user_timeline(user_id = KANYE_USERID, count = 200, since_id = since_id)
-    while len(newtweets) > 0:
-        newtweets = [t for t in newtweets if t['id'] > since_id]
-        tweets.extend(newtweets)
-        if len(tweets) == 0:
-            print("No new tweets")
-            return []
-        print("%s new downloaded so far..."%(len(tweets)))
-        IDs = np.array([int(t['id']) for t in tweets])
-        since_id = int(np.max(IDs))
-        newtweets = api.get_user_timeline(user_id = KANYE_USERID, count = 200, since_id = since_id)        
-    return tweets
+
+def makeTweetVideo(sgin, windowID, tweetID, text):
+    """
+    Given a saved game, load it and apply the words from this
+    particular tweet
+    """
+    time.sleep(1)
+    loadGame(sgin, windowID)
+    time.sleep(1)
     
-
-class TweetObj(object):
-    def __init__(self, ID):
-        self.ID = ID
-        self.date = ""
-        self.text = ""
-    
-    def __str__(self):
-        return "%i, %s\n%s"%(self.ID, self.date, self.text)
-
-def loadAllSavedTweets(verbose = False):
-    files = os.listdir('Data')
-    tweets = []
-    oggs = []
-    TweetsDict = {}
-    for f in files:
-        (ID, ext) = os.path.splitext(f)
-        if ext == ".txt":
-            ID = int(ID)
-            if not ID in TweetsDict:
-                TweetsDict[ID] = TweetObj(ID)
-                fin = open("Data/"+f)
-                lines = fin.readlines()
-                TweetsDict[ID].date = lines[0]
-                for l in lines[1::]:
-                    TweetsDict[ID].text += l
-    #Remove retweets and tweets with only links
-    retweets = []
-    for ID in TweetsDict:
-        text = TweetsDict[ID].text.lower()
-        texturl = removeURLs(text)
-        if text[0:3] == "rt ":
-            retweets.append(ID)
-        elif len(texturl.split()) == 0:
-            retweets.append(ID)
-    NRetweets = len(retweets)
-    for ID in retweets:
-        TweetsDict.pop(ID)
-    if verbose:
-        print("%i retweets removed from initial list, %i tweets total loaded"%(NRetweets, len(TweetsDict)))
-    return TweetsDict
-
-def saveTweet(tweet):
-    ID = tweet['id']
-    created_at = tweet['created_at']
-    text = tweet['text']
-    text = scrubText(text)
-    fout = open("Data/%i.txt"%ID, 'w')
-    fout.write("%s\n"%created_at)
-    fout.write(text)
-    fout.close()
-
-def saveAllTweetsUpToNow():
-    api = getTwythonObj()
-    tweets = getAllTweetsUpToNow(api)
-    for t in tweets:
-        print(t['id'])
-        saveTweet(t)
-
-def saveNewTweets():
-    api = getTwythonObj()
-    TweetsDict = loadAllSavedTweets()
-    IDs = np.array([TweetsDict[T].ID for T in TweetsDict])
-    newtweets = getNewTweets(api, np.max(IDs))
-    for t in newtweets:
-        print(t['id'])
-        saveTweet(t)
-    return len(newtweets)
-
-#Extract all of the stems and the index ranges of the original words
-def processTweet(t):
-    text = t.text.lower()
-    V = TfidfVectorizer(max_features=len(text))
-    texturl = removeURLs(text)
-    strs = texturl.split()
+    #Step 1: Make all frames
+    words = text.split()
+    using = np.zeros(len(words))
+    ranges = []
     idx = 0
-    words = []
-    porter = nltk.PorterStemmer()
-    for s in strs:
-        try:
-            X = V.fit_transform([s])
-        except:
-            continue
-        stem = V.get_feature_names()[0]
-        stem = porter.stem(stem)
-        start = text[idx:].find(s) + idx
-        end = start + len(s)
-        idx = end
-        words.append({'stem':stem, 'range':[start, end]})
-    return words
+    for i, w in enumerate(words):
+        wlower = w.lower()
+        ranges.append([])
+        if wlower in KEYS:
+            keyObj = KEYS[wlower]
+            hitKeyAndRecord(windowID, keyObj, "temp%i.gif"%i)
+            using[i] = 1
+            start = text[idx:].find(w) + idx
+            end = start + len(w)
+            idx = end
+            ranges[i] = [start, end]
+            time.sleep(RECORD_TIME)
+    saveGame("Data/%i.sgm"%tweetID, windowID)
+    
+    #Step 2: Add controls and text to all frames
+    FrameCount = 0
+    FNULL = open(os.devnull, 'w')
+    for i in range(len(words)):
+        #Output video frames to temporary directory    
+        if using[i] == 1:
+            subprocess.call(["ffmpeg", "-i", "temp%i.gif"%i, "-r", "%i"%FRAMESPERSEC, "-f", "image2", "Temp/%d.png"], stdout = FNULL, stderr = FNULL)
+            os.remove("temp%i.gif"%i)
+            
+            #Superimpose the text and the gameboy control on all images
+            keyObj = KEYS[words[i].lower()]
+            (I, r) = makeFrameTemplate("Temp/1.png", keyObj, text, ranges[i])
+            H = r[1] - r[0]
+            W = r[3] - r[2]
+            NFiles = len([f for f in os.listdir("Temp") if f[-3:] == 'png'])
+            for k in range(1, NFiles+1):
+                frame = skimage.io.imread("Temp/%i.png"%k)
+                frame = skimage.transform.resize(frame, (H, W))*255
+                I[r[0]:r[1], r[2]:r[3], :] = np.array(frame[:, :, 0:3], dtype=np.uint8)
+                im = Image.fromarray(I)
+                im.save("Temp/%i.png"%k)
+        
+            for k in range(NFiles):
+                shutil.copyfile("Temp/%i.png"%(k+1), "VideoStaging/%i.png"%(k+FrameCount))
+                os.remove("Temp/%i.png"%(k+1))
+            FrameCount += NFiles
+    
+    print("Saving final video...")
+    #Make GIF
+    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-b", "20000k", "-r", "%i"%FRAMESPERSEC, "Data/%i.gif"%tweetID], stdout = FNULL, stderr = FNULL)
+    #Clean up staging area
+    for i in range(FrameCount):
+        os.remove("VideoStaging/%i.png"%i)
+    print("Finished")
 
 if __name__ == '__main__':
-    TweetsDict = loadAllSavedTweets()
-    for T in sorted(TweetsDict):
-        print("----------------------")
-        text = TweetsDict[T].text
-        words = processTweet(TweetsDict[T])
-        for w in words:
-            r = w['range']
-            print(text[r[0]:r[1]], " (", w['stem'], ")")
+    launchGame()
+    time.sleep(1)
+    ID = getWindowID()
+    makeTweetVideo("BEGINNING.sgm", ID, 123, "I want it to go left and then right up down start")
+
+if __name__ == '__main__2':
+    api = getTwythonObj()
+    photo = open('Left.gif', 'rb')
+    response = api.upload_media(media=photo)
+    api.update_status(status='Going left!', media_ids=[response['media_id']])
