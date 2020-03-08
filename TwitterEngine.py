@@ -155,9 +155,10 @@ def respondToTweets(api, windowID):
 
 if __name__ == '__main__':
     api = getTwythonObj()
-    launchGame()
-    time.sleep(1)
-    ID = getWindowID()
     while True:
+        launchGame()
+        time.sleep(1)
+        ID = getWindowID()
         respondToTweets(api, ID)
+        subprocess.call(["killall", "vba"])
         time.sleep(30)
