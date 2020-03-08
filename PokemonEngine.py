@@ -110,6 +110,7 @@ def startRecording(filename, ID, display = ":1.0"):
     if PYTHON3:
         pos = str(pos)[2:-1]
     command = ["ffmpeg", "-f", "x11grab", "-r", "30", "-s", geom, "-i", "%s+%s"%(display, pos), "-qscale", "0", filename]
+    print(command)
     FNULL = open(os.devnull, 'w')
     proc = subprocess.Popen(command, stdout = FNULL, stderr = FNULL)
     return proc
@@ -212,12 +213,13 @@ if __name__ == '__main__':
     recProc = startRecording("test.avi", ID, DISPLAY)
     time.sleep(1)
     loadGame("BEGINNING.sgm", ID)
-    holdKey(ID, 'space')
+    #holdKey(ID, 'space')
     #time.sleep(3)
-    for i in range(1000):
-        key = KEYS[np.random.randint(len(KEYS))]
-        hitKey(ID, key, 1000/30)
-    releaseKey(ID, 'space')
+    keysList = list(KEYS.keys())
+    for i in range(10):
+        key = KEYS[keysList[np.random.randint(len(KEYS))]]
+        hitKey(ID, key.key, 1000/30)
+    #releaseKey(ID, 'space')
     stopRecording(recProc)
     #saveGame("startScreen.sgm", ID)
 
