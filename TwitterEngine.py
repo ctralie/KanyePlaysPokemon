@@ -35,6 +35,14 @@ def getTwythonObj():
     return api
 
 
+def contains_commands(text):
+    result = False
+    words = text.split()
+    for i, w in enumerate(words):
+        wlower = w.lower()
+        if wlower in KEYS:
+            result = True
+    return result
 
 def makeTweetVideo(sgin, windowID, tweetID, text):
     """
@@ -122,6 +130,8 @@ def respondToTweets(api, windowID):
     print("%i new tweets"%len(statuses))
     for s in statuses:
         text = s['text']
+        if not contains_commands(text):
+            continue
         screen_name = s['user']['screen_name']
         tweetID = s['id']
         sgm = "Data/%s.sgm"%laststatus
