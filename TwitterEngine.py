@@ -134,7 +134,7 @@ def respondToTweets(api, windowID):
 
         photo = open("LastFrame.png", 'rb')
         response = api.upload_media(media=photo)
-        res = api.update_status(status="@%s Here's where you ended up"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
+        res = api.update_status(status="@%s This is the end of your sequence"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
         res = api.retweet(id=res['id_str'])
 
         laststatus = "%s"%tweetID
