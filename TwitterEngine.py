@@ -93,7 +93,10 @@ def makeTweetVideo(sgin, windowID, tweetID, text):
     
     print("Saving final video...")
     #Make GIF
-    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-b", "20000k", "-r", "%i"%FRAMESPERSEC, "Data/%i.gif"%tweetID], stdout = FNULL, stderr = FNULL)
+    filename = "Data/%i.gif"%tweetID
+    if os.path.exists(filename):
+        os.remove(filename)
+    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-b", "20000k", "-r", "%i"%FRAMESPERSEC, filename], stdout = FNULL, stderr = FNULL)
     #Clean up staging area
     for i in range(FrameCount):
         os.remove("VideoStaging/%i.png"%i)
