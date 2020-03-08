@@ -133,7 +133,6 @@ def respondToTweets(api, windowID):
         if not contains_commands(text):
             continue
         tweetID = s['id']
-        laststatus = "%s"%tweetID
         screen_name = s['user']['screen_name']
         sgm = "Data/%s.sgm"%laststatus
         makeTweetVideo(sgm, windowID, tweetID, text)
@@ -147,6 +146,7 @@ def respondToTweets(api, windowID):
         response = api.upload_media(media=photo)
         res = api.update_status(status="@%s This is the end of your sequence"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
         res = api.retweet(id=res['id_str'])
+        laststatus = "%s"%tweetID
 
         
     fout = open("LASTSTATUS.txt", "w")
