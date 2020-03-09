@@ -158,6 +158,13 @@ def get_celeb_statuses(api, database):
                 database[ID] = newtweets[0]['id_str']
     return statuses
 
+def reset_celebs(api, database):
+    for ID in database.keys():
+        if not ID == 'laststatus':
+            newtweets = api.get_user_timeline(user_id = ID, count=2)
+            database[ID] = newtweets[0]['id_str']
+    save_database(database)
+
 
 def respondToTweets(api):
     database = load_database()
@@ -186,7 +193,7 @@ def respondToTweets(api):
 
             photo = open("LastFrame.png", 'rb')
             response = api.upload_media(media=photo)
-            res = api.update_status(status="@%s This is the end of your sequence"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
+            res = api.update_status(status="@%s Here's where you stopped"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
             res = api.retweet(id=res['id_str'])
             database['laststatus'] = "%s"%tweetID
 
@@ -199,6 +206,7 @@ def respondToTweets(api):
 
 if __name__ == '__main__':
     api = getTwythonObj()
+    reset_celebs(api, load_database())
     while True:
         respondToTweets(api)
         time.sleep(30)
