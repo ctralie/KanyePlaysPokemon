@@ -159,7 +159,7 @@ def get_celeb_statuses(api, database):
     return statuses
 
 
-def respondToTweets(api, windowID):
+def respondToTweets(api):
     database = load_database()
     statuses = api.search(q="@twitplayspokem", since_id=int(database['laststatus']))['statuses']
     statuses = [s for s in statuses if contains_commands(s['text'])]
@@ -168,36 +168,37 @@ def respondToTweets(api, windowID):
         s['celeb'] = False
     statuses =  statuses + get_celeb_statuses(api, database)
     print("%i new tweets"%len(statuses))
-    for s in statuses:
-        text = s['text']
-        tweetID = s['id']
-        screen_name = s['user']['screen_name']
-        sgm = "Data/%s.sgm"%database['laststatus']
-        makeTweetVideo(sgm, windowID, s)
+    if len(statuses) > 0:
+        launchGame()
+        time.sleep(1)
+        windowID = getWindowID()
+        for s in statuses:
+            text = s['text']
+            tweetID = s['id']
+            screen_name = s['user']['screen_name']
+            sgm = "Data/%s.sgm"%database['laststatus']
+            makeTweetVideo(sgm, windowID, s)
 
-        photo = open("Data/%i.gif"%tweetID, 'rb')
-        response = api.upload_media(media=photo)
-        res = api.update_status(status="@%s"%screen_name, in_reply_to_status_id = tweetID, media_ids=[response['media_id']])
-        res = api.retweet(id=res['id_str'])
+            photo = open("Data/%i.gif"%tweetID, 'rb')
+            response = api.upload_media(media=photo)
+            res = api.update_status(status="@%s"%screen_name, in_reply_to_status_id = tweetID, media_ids=[response['media_id']])
+            res = api.retweet(id=res['id_str'])
 
-        photo = open("LastFrame.png", 'rb')
-        response = api.upload_media(media=photo)
-        res = api.update_status(status="@%s This is the end of your sequence"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
-        res = api.retweet(id=res['id_str'])
-        database['laststatus'] = "%s"%tweetID
+            photo = open("LastFrame.png", 'rb')
+            response = api.upload_media(media=photo)
+            res = api.update_status(status="@%s This is the end of your sequence"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
+            res = api.retweet(id=res['id_str'])
+            database['laststatus'] = "%s"%tweetID
 
-        if s['celeb']:
-            time.sleep(30)
+            if s['celeb']:
+                time.sleep(30)
 
-        
-    save_database(database)
+            
+        save_database(database)
+        subprocess.call(["killall", "vba"])
 
 if __name__ == '__main__':
     api = getTwythonObj()
     while True:
-        launchGame()
-        time.sleep(1)
-        ID = getWindowID()
-        respondToTweets(api, ID)
-        subprocess.call(["killall", "vba"])
+        respondToTweets(api)
         time.sleep(30)
