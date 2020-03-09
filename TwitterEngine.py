@@ -126,17 +126,11 @@ def makeTweetVideo(sgin, windowID, tweet):
     filename = "Data/%i.gif"%tweetID
     if os.path.exists(filename):
         os.remove(filename)
-    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-r", "%i"%FRAMESPERSEC, "-fs", "4M", filename], stdout = FNULL, stderr = FNULL)
+    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-r", "10", "-fs", "4.8M", filename], stdout = FNULL, stderr = FNULL)
     #Clean up staging area
     for i in range(FrameCount):
         os.remove("VideoStaging/%i.png"%i)
     print("Finished")
-
-def testMakeTweetVideo():
-    launchGame()
-    time.sleep(1)
-    ID = getWindowID()
-    makeTweetVideo("BEGINNING.sgm", ID, {'id':123, 'text':"@twitplayspokem do a   Left up up up up right right right right right up up down down down down down down left left left left down", 'celeb':False})
 
 def load_database():
     return pickle.load(open("database.db", "rb"))
@@ -206,6 +200,12 @@ def respondToTweets(api):
             
         save_database(database)
         subprocess.call(["killall", "vba"])
+
+def testMakeTweetVideo():
+    launchGame()
+    time.sleep(1)
+    ID = getWindowID()
+    makeTweetVideo("BEGINNING.sgm", ID, {'id':123, 'text':"@twitplayspokem a up down b left right up down b b a up left left down right down left up up a a a a a a a a b right up down", 'celeb':False})
 
 if __name__ == '__main__':
     api = getTwythonObj()
