@@ -10,8 +10,11 @@ from twython import Twython
 import os
 import shutil
 import skimage
+import pickle
 from PIL import Image
 from PokemonEngine import *
+
+START_TEXT = "@twitplayspokem do"
 
 def scrubText(s):
     chars = {"\n":" ", "&amp;":"and"}
@@ -35,20 +38,23 @@ def getTwythonObj():
     return api
 
 
-def contains_commands(text):
+def contains_commands(text, celeb = False):
     result = False
-    words = text.split()
-    for i, w in enumerate(words):
-        wlower = w.lower()
-        if wlower in KEYS:
-            result = True
+    if celeb or text.find(START_TEXT) == 0:
+        words = text.split()
+        for i, w in enumerate(words):
+            wlower = w.lower()
+            if wlower in KEYS:
+                result = True
     return result
 
-def makeTweetVideo(sgin, windowID, tweetID, text):
+def makeTweetVideo(sgin, windowID, tweet):
     """
     Given a saved game, load it and apply the words from this
     particular tweet
     """
+    text = tweet['text']
+    tweetID = tweet['id']
     time.sleep(1)
     loadGame(sgin, windowID)
     time.sleep(1)
@@ -57,7 +63,9 @@ def makeTweetVideo(sgin, windowID, tweetID, text):
     words = text.split()
     using = np.zeros(len(words))
     ranges = []
-    idx = 0
+    idx = len(START_TEXT)
+    if tweet['celeb']:
+        idx = 0
     for i, w in enumerate(words):
         wlower = w.lower()
         ranges.append([])
@@ -65,7 +73,13 @@ def makeTweetVideo(sgin, windowID, tweetID, text):
             keyObj = KEYS[wlower]
             hitKeyAndRecord(windowID, keyObj, "temp%i.gif"%i)
             using[i] = 1
-            start = text[idx:].find(w) + idx
+            if wlower == 'a':
+                if text[idx:].find(w + ' '):
+                    start = text[idx:].find(w + ' ') + idx
+                elif text[idx:].find(' ' + w):
+                    start = text[idx:].find(' ' + w) + idx
+            else:
+                start = text[idx:].find(w) + idx
             end = start + len(w)
             idx = end
             ranges[i] = [start, end]
@@ -119,23 +133,47 @@ def testMakeTweetVideo():
     launchGame()
     time.sleep(1)
     ID = getWindowID()
-    makeTweetVideo("BEGINNING.sgm", ID, 123, "First tweet!  Left up up up up right right right right right up up down down down down down down left left left left down")
+    makeTweetVideo("BEGINNING.sgm", ID, {'id':123, 'text':"@twitplayspokem do a   Left up up up up right right right right right up up down down down down down down left left left left down", 'celeb':False})
+
+def load_database():
+    return pickle.load(open("database.db", "rb"))
+
+def save_database(data):
+    pickle.dump(data, open("database.db", "wb"))
+
+def get_celeb_statuses(api, database):
+    """
+    Load all of the statuses from celebrities
+    """
+    statuses = []
+    for ID in database.keys():
+        if not ID == 'laststatus':
+            newtweets = api.get_user_timeline(user_id = ID, since_id = database[ID])
+            newtweets.reverse()
+            for s in newtweets:
+                if contains_commands(s['text'], celeb = True):
+                    s['celeb'] = True
+                    statuses.append(s)
+            if len(newtweets) > 0:
+                database[ID] = newtweets[0]['id_str']
+    return statuses
+
 
 def respondToTweets(api, windowID):
-    fin = open("LASTSTATUS.txt")
-    laststatus = fin.read().strip()
-    fin.close()
-    statuses = api.search(q="@twitplayspokem", since_id=int(laststatus))['statuses']
+    database = load_database()
+    statuses = api.search(q="@twitplayspokem", since_id=int(database['laststatus']))['statuses']
+    statuses = [s for s in statuses if contains_commands(s['text'])]
     statuses.reverse()
+    for s in statuses:
+        s['celeb'] = False
+    statuses =  statuses + get_celeb_statuses(api, database)
     print("%i new tweets"%len(statuses))
     for s in statuses:
         text = s['text']
-        if not contains_commands(text):
-            continue
         tweetID = s['id']
         screen_name = s['user']['screen_name']
-        sgm = "Data/%s.sgm"%laststatus
-        makeTweetVideo(sgm, windowID, tweetID, text)
+        sgm = "Data/%s.sgm"%database['laststatus']
+        makeTweetVideo(sgm, windowID, s)
 
         photo = open("Data/%i.gif"%tweetID, 'rb')
         response = api.upload_media(media=photo)
@@ -146,12 +184,13 @@ def respondToTweets(api, windowID):
         response = api.upload_media(media=photo)
         res = api.update_status(status="@%s This is the end of your sequence"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
         res = api.retweet(id=res['id_str'])
-        laststatus = "%s"%tweetID
+        database['laststatus'] = "%s"%tweetID
+
+        if s['celeb']:
+            time.sleep(30)
 
         
-    fout = open("LASTSTATUS.txt", "w")
-    fout.write("%s"%laststatus)
-    fout.close()
+    save_database(database)
 
 if __name__ == '__main__':
     api = getTwythonObj()
