@@ -14,7 +14,8 @@ import pickle
 from PIL import Image
 from PokemonEngine import *
 
-START_TEXT = "@twitplayspokem do"
+START_TEXT = "@twitplayspokem"
+MY_ID = 1136035124640919553
 
 def scrubText(s):
     chars = {"\n":" ", "&amp;":"and"}
@@ -38,14 +39,16 @@ def getTwythonObj():
     return api
 
 
-def contains_commands(text, celeb = False):
+def contains_commands(tweet, celeb = False):
     result = False
-    if celeb or text.find(START_TEXT) == 0:
-        words = text.split()
-        for i, w in enumerate(words):
-            wlower = w.lower()
-            if wlower in KEYS:
-                result = True
+    if not(tweet['user']['id'] == MY_ID):
+        text = tweet['text']
+        if celeb or text.find(START_TEXT) == 0:
+            words = text.split()
+            for i, w in enumerate(words):
+                wlower = w.lower()
+                if wlower in KEYS:
+                    result = True
     return result
 
 def makeTweetVideo(sgin, windowID, tweet):
@@ -151,7 +154,7 @@ def get_celeb_statuses(api, database):
             newtweets = api.get_user_timeline(user_id = ID, since_id = database[ID])
             newtweets.reverse()
             for s in newtweets:
-                if contains_commands(s['text'], celeb = True):
+                if contains_commands(s, celeb = True):
                     s['celeb'] = True
                     statuses.append(s)
             if len(newtweets) > 0:
@@ -169,7 +172,7 @@ def reset_celebs(api, database):
 def respondToTweets(api):
     database = load_database()
     statuses = api.search(q="@twitplayspokem", since_id=int(database['laststatus']))['statuses']
-    statuses = [s for s in statuses if contains_commands(s['text'])]
+    statuses = [s for s in statuses if contains_commands(s)]
     statuses.reverse()
     for s in statuses:
         s['celeb'] = False
