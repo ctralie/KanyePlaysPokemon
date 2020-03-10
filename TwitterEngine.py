@@ -126,7 +126,7 @@ def makeTweetVideo(sgin, windowID, tweet):
     filename = "Data/%i.gif"%tweetID
     if os.path.exists(filename):
         os.remove(filename)
-    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-r", "10", "-fs", "4.8M", filename], stdout = FNULL, stderr = FNULL)
+    subprocess.call(["ffmpeg", "-r", "15", "-i", "VideoStaging/%d.png", "-r", "10", "-fs", "5M", filename], stdout = FNULL, stderr = FNULL)
     #Clean up staging area
     for i in range(FrameCount):
         os.remove("VideoStaging/%i.png"%i)
