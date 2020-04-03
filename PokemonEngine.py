@@ -9,10 +9,10 @@ from PIL import Image
 
 SAVEGAMELOC = "/home/ctralie/.vba/POKEMONRED981.sgm"
 PYTHON3 = True
-DISPLAY = ":0.0"
 RECORD_TIME = 1
 FRAMESPERSEC = 15
-Y_OFFSET = -38
+Y_OFFSET = -45
+HEIGHT_CORRECTION = 50
 
 class Key(object):
     def __init__(self, key, actualkey, prob, image):
@@ -112,6 +112,7 @@ def startRecording(ID, filename, time = 10):
         geom = str(geom)[2:-1]
         pos = str(pos)[2:-1]
     width, height = geom.split("x")
+    height = "%i"%(int(height)+HEIGHT_CORRECTION)
     x, y = pos.split(",")
     y = int(y)
     y = "%i"%(y + Y_OFFSET)
