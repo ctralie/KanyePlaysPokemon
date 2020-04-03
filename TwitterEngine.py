@@ -193,6 +193,10 @@ def respondToTweets(api):
             res = api.update_status(status="@%s Here's where you stopped"%screen_name, in_reply_to_status_id = res['id_str'], media_ids=[response['media_id']])
             res = api.retweet(id=res['id_str'])
             database['laststatus'] = "%s"%tweetID
+            
+            subprocess.call(["cp", "LastFrame.png", "Data/%s.png"%s['id']])
+            pickle.dump(s, open("Data/%s.db"%s['id'], "wb"))
+            
 
             if s['celeb']:
                 time.sleep(30)
@@ -212,4 +216,4 @@ if __name__ == '__main__':
     reset_celebs(api, load_database())
     while True:
         respondToTweets(api)
-        time.sleep(30)
+        time.sleep(15)
